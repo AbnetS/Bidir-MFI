@@ -75,10 +75,7 @@ exports.getCollectionByPagination = function getCollection(query, qs, cb) {
     page:     qs.page,
     limit:    Number(qs.limit)
   };
-console.log(opts)
-
-
-
+  
   branchModel.paginate(query, opts, function (err, docs, page, count) {
     if(err) {
       return cb(err);
