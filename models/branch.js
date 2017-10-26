@@ -10,14 +10,14 @@ var paginator = require('mongoose-paginate');
 var Schema = mongoose.Schema;
 
 var BranchSchema = new Schema({
-    MFI:            { type: Schema.Types.ObjectId, ref:'MFI'},
-    name:           { type: String },
-    location:       { type: String },    
-    opening_date:       { type: Date },
-    branch_type:        { type: String },
+    MFI:            { type: Schema.Types.ObjectId, ref:'MFI', required: true},
+    name:           { type: String, required: true, unique: true },
+    location:       { type: String,  required: true },    
+    opening_date:   { type: Date },
+    branch_type:    { type: String },
     email:          { type: String },
     phone:          { type: String },
-    status:         {type: String, enums:['active', 'inactive']}
+    status:         {type: String, enums:['active', 'inactive'], default:'active'},
     date_created:   { type: Date },
     last_modified:  { type: Date }
 });
@@ -33,24 +33,23 @@ BranchSchema.plugin(paginator);
  *        - Hash tokens password.
  */
 BranchSchema.pre('save', function preSaveMiddleware(next) {
-  var token = this;
+  var instance = this;
 
   // set date modifications
   var now = moment().toISOString();
 
-  token.date_created = now;
-  token.last_modified = now;
+  instance.date_created = now;
+  instance.last_modified = now;
 
   next();
 
 });
 
 /**
- * Branch Attributes to expose
+ * Filter Branch Attributes to expose
  */
 BranchSchema.statics.whitelist = {
-  _id: 1,
-  date_created:   1
+  __v: 0
 };
 
 

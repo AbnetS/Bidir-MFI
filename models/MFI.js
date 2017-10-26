@@ -18,6 +18,7 @@ var MFISchema = new Schema({
     email:          { type: String, default:"" },
     phone:          { type: String, default:""},
     contact_person: {type: String, default: ""},
+    branches:        [{type: Schema.Types.ObjectId, ref: "Branch"}],
     date_created:   { type: Date },
     last_modified:  { type: Date }
 });

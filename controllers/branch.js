@@ -1,182 +1,178 @@
-/** *
- * Load Module Dependencies.
- */
-var EventEmitter = require('events').EventEmitter;
-
-var debug      = require('debug')('api:branch-controller');
+var debug      = require('debug')('api:Branch-controller');
 var async      = require('async');
 var moment     = require('moment');
 var _          = require('lodash');
 
+var branchDal       = require ('../dal/Branch');
+var MFIDal          = require ('../dal/MFI');
 var config          = require('../config');
 var CustomError     = require('../lib/custom-error');
+var enums           = require('../lib/enums');
 
 
-/**
- * Create a branch.
- *
- * @desc create a branch and add them to the database
- *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
- * @param {Function} next Middleware dispatcher
- */
-exports.create = function createBranch(req, res, next) {
-  debug('create branch');
+exports.validateBranchId = function validateBranchId(req, res, next, id) {
+  //Validate the id is mongoid or not
+  req.checkParams('id', 'Invalid Id parameter').isMongoId(id);
 
-  // Begin workflow
-  var workflow = new EventEmitter();
-  var body = req.body;
+  var validationErrors = req.validationErrors();
 
-  // validating branch data
-  // cant trust anyone
-  workflow.on('validate', function validateBranch() {
+  if (validationErrors) {
+    return next(new CustomError({
+        status:400,                
+        specific_errors:validationErrors                
+    }));   
 
-    var errs = req.validationErrors();
+  }
+  next(null);
+}
 
-    if(errs) {
-      return next(CustomError({
-        name: 'RESOURCE_CREATION_ERROR',
-        message: errs.message
-      }));
-    }
+exports.create = function createBranch(req, res, next){
+  //Worklow to create a branch
+  //1. Validate data
+  //2. Get the MFI since there is only one MFI
+  //3. Check in case the branch exists
+  //4. Create the branch record under the MFI in (2)
+  //5. Add the branch to MFI branches array
+          //4. Create task for an approver admin (for all)
+  //6. Respond
+  
+  async.waterfall([
+    function getMFI(cb){      
+      MFIDal.getCollection({ }, function (err, mfi){
+        if (err){
+          return next(new CustomError({
+            status: 500,
+            specific_errors:[{code: 500, message: err.message}]
+          }));
+        }
 
-    workflow.emit('createBranch');
-  });
+        if (mfi.length === 0){
+          return next(new CustomError({
+            status: 400,
+            specific_errors: [enums.APPL_ERROR_CODES.MFI_NOT_REGISTERED]
+          }))
+        }
 
-  workflow.on('createBranch', function createBranch() {
-    var verificationLink;
+        cb(null, mfi[0])
+      })
+    }, function validateData(mfi, cb){
+      req.checkBody({
+        name:{notEmpty: true, errorMessage:'Branch name can not be empty!'},
+        location:{notEmpty: true, errorMessage:'Branch location can not be empty!'}        
+      })
 
+      if (req.body.email){
+        req.checkBody({email:{isEmail:true, errorMessage:"Email is invalid"}})
+      }
+      var validationErrors = req.validationErrors();
 
-    Branch.create(body, function (err, branch) {
-      if(err) {
-        return next(CustomError({
-          name: 'RESOURCE_CREATION_ERROR',
-          message: err.message
-        }));
+      if (validationErrors) {
+          return next(new CustomError({
+              status:400,                
+              specific_errors:validationErrors                
+        }));  
       }
 
+      cb(null, mfi)
+    }, function checkIfBranchExists(mfi, cb){     
+      branchDal.get({name: req.body.name.trim()}, function (err, branch){
+        if (err){
+          return next(new CustomError({
+            status: 500,
+            specific_errors:[{code: 500, message: err.message}]
+          }));
+        }
 
-      workflow.emit('completeRegistration', branch);
+        if (branch._id){
+          return next (new CustomError({
+            status: 400,
+            specific_errors:enums.APPL_ERROR_CODES.BRANCH_NAME_EXISTS 
+          }))
+        }
 
-    });
+        cb (null, mfi);
+      })
+    }, function createBranch(mfi, cb){
+      var branchData = req.body;
+      branchData.name = req.body.name.trim();
+      branchData.MFI = mfi._id
 
+      branchDal.create(branchData, function (err, branch){
+        if (err){
+          console.log(err)
+          return next (new CustomError ({
+            status: 500,
+            specific_errors:[{code: 500, message: err.message}]
+            //specific_errors: [err.toJSON()]
+          }))
+        }
 
-  });
+        cb(null, mfi, branch)
+      })
+    }, function addBranchesToMFI(mfi, branch, cb){
+      var updates = {$push:{branches: branch._id}}
 
+      MFIDal.update({_id: mfi._id}, updates, function (err, mfi){
+        if (err){
+          return next(new CustomError({
+            status: 500,
+            specific_errors:[{code: 500, message: err.message}]
+          }));
+        }
 
-  workflow.on('completeRegistration', function (branch) {
+        cb(null, branch)
+      })
+    }], function completed (err, branch){
+          if (err){
+            return next(new CustomError({                            
+                status: 500,  
+                specific_errors:[{code: 500, message: err.message}]
+              }));
+          }
 
-    res.status(201).json(branch);
-  });
-
-  workflow.emit('validate');
-};
+          res.status = 201;
+          res.json(branch);
+      }
+)}
 
 /**
- * Get a single branch.
+ * Get a collection of Branches
  *
- * @desc Fetch a branch with the given id from the database.
+ * @desc Fetch a collection of Branches
  *
  * @param {Object} req HTTP Request Object
  * @param {Object} res HTTP Response Object
  * @param {Function} next Middleware dispatcher
  */
-exports.fetchOne = function fetchOneBranch(req, res, next) {
-  debug('fetch branch:' + req.params.id);
+exports.fetchAll = function fetchAllBranches(req, res, next) {
+  debug('get a collection of Branches');
 
-  var query = {
-    _id: req.params.id
-  };
+  var query = {};
+  var opts = {};
 
-  Branch.get(query, function cb(err, branch) {
+  branchDal.getCollection(query, /*opts,*/ function cb(err, Branches) {
     if(err) {
       return next(CustomError({
-        name: 'SERVER_ERROR',
-        message: err.message,
-        status: 500
+        status: 500,
+        specific_errors:[{code: 500, message: err.message}]
       }));
     }
-
-    res.json(branch);
+   
+    res.json(Branches);    
   });
 };
 
 /**
- * Update a single branch.
+ * Get a collection of Branches with pagination
  *
- * @desc Fetch a branch with the given id from the database
- *       and update their data
+ * @desc Fetch a collection of Branches
  *
  * @param {Object} req HTTP Request Object
  * @param {Object} res HTTP Response Object
  * @param {Function} next Middleware dispatcher
  */
-exports.update = function updateBranch(req, res, next) {
-  debug('updating branch:'+ req.params.id);
-
-  var query = {
-    _id: req.params.id
-  };
-  var body = req.body;
-
-  Branch.update(query, body, function cb(err, branch) {
-    if(err) {
-      return next(CustomError({
-        name: 'SERVER_ERROR',
-        message: err.message
-      }));
-    }
-
-    res.json(branch);
-
-  });
-
-};
-
-/**
- * Delete/Archive a single branch.
- *
- * @desc Fetch a branch with the given id from the database
- *       and delete their data
- *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
- * @param {Function} next Middleware dispatcher
- */
-exports.delete = function deleteBranch(req, res, next) {
-  debug('deleting branch:' + req.params.id);
-
-  var query = {
-    _id: req.params.id
-  };
-
-  Branch.delete(query, function cb(err, branch) {
-    if(err) {
-      return next(CustomError({
-        name: 'SERVER_ERROR',
-        message: err.message
-      }));
-    }
-
-
-    res.json(branch);
-
-  });
-
-};
-
-/**
- * Get a collection of branchs with pagination
- *
- * @desc Fetch a collection of branchs
- *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
- * @param {Function} next Middleware dispatcher
- */
-exports.fetchAllByPagination = function fetchAllbranchs(req, res, next) {
-  debug('get a collection of branchs');
+exports.fetchAllByPagination = function fetchAllBranches(req, res, next) {
+  debug('get a collection of Branches');
 
   var page   = req.query.page || 1;
   var limit  = req.query.per_page || 10;
@@ -187,44 +183,184 @@ exports.fetchAllByPagination = function fetchAllbranchs(req, res, next) {
     sort: { }
   };
   var query = {};
+  
 
-  Branch.getCollectionByPagination(query, opts, function cb(err, branchs) {
+  branchDal.getCollectionByPagination(query, opts, function cb(err, Branches) {
     if(err) {
       return next(CustomError({
-        name: 'SERVER_ERROR',
-        message: err.message
+        status: 500,
+        specific_errors:[{code: 500, message: err.message}]
       }));
     }
 
-    res.json(branchs);
+    res.json(Branches);
   });
 };
 
+
 /**
- * Get a collection of branchs
+ * Get a single Branch.
  *
- * @desc Fetch a collection of branchs
+ * @desc Fetch a Branch with the given id from the database.
  *
  * @param {Object} req HTTP Request Object
  * @param {Object} res HTTP Response Object
  * @param {Function} next Middleware dispatcher
  */
-exports.fetchAll = function fetchAllbranchs(req, res, next) {
-  debug('get a collection of branchs');
+exports.fetchOne = function fetchOneBranch(req, res, next) {
+  debug('fetch Branch:' + req.params.id);
 
-  var query = {};
-  var opts = {};
+  var query = {
+    _id: req.params.id
+  };
 
-  Branch.getCollection(query, opts, function cb(err, branchsStream) {
-    if(err) {
-      return next(CustomError({
-        name: 'SERVER_ERROR',
-        message: err.message
+  branchDal.get(query, function cb(err, branch) {
+    if(err) {      
+      return next(CustomError({        
+        status: 500,
+        specific_errors:[{code: 500, message: err.message}]
       }));
     }
 
-    res.setHeader('Content-Type', 'application/json');
+    if (!branch._id){
+				return next (new CustomError({
+        			status: 400,
+        			specific_errors: [enums.APPL_ERROR_CODES.BRANCH_DOES_NOT_EXIST]	
+      			}));
+		}
 
-    branchsStream.pipe(res);
+    res.json(branch);
   });
+}; 
+
+/**
+ * Update a single Branch.
+ *
+ * @desc Fetch a Branch with the given id from the database
+ *       and update their data
+ *
+ * @param {Object} req HTTP Request Object
+ * @param {Object} res HTTP Response Object
+ * @param {Function} next Middleware dispatcher
+ */
+exports.update = function updateBranch(req, res, next) {
+  debug('updating Branch:'+ req.params.id);
+
+  var query = {
+    _id: req.params.id
+  };
+  var body = req.body;
+  console.log(req.body)
+
+  async.waterfall([
+    function checkIfNameIsUnique(cb){
+      branchDal.get({name: req.body.name.trim()}, function (err, branch){
+        if (err){
+          return next(new CustomError({
+            status: 500,
+            specific_errors:[{code: 500, message: err.message}]
+          }));
+        }
+
+        if (branch._id && branch._id != req.params.id){
+          return next (new CustomError({
+            status: 400,
+            specific_errors:enums.APPL_ERROR_CODES.BRANCH_NAME_EXISTS 
+          }))
+        }
+
+        cb (null);
+      })    
+  }, function validateFields(cb){
+      if(req.body.email){
+        req.checkBody({        
+          email:{isEmail:true, errorMessage:"Email is invalid"}
+        });
+        var validationErrors = req.validationErrors();
+
+        if (validationErrors) {
+            return next(new CustomError({
+                status:400,                
+                specific_errors:validationErrors                
+          }));  
+        }
+      }
+
+      cb(null);
+  }, function updateBranch(cb){
+      var query = {_id: req.params.id}
+      var updates = req.body;      
+
+      branchDal.update(query, updates, function (err, branch) {
+        if(err) {  
+          return next(CustomError({
+        			status: 500,					
+        			specific_errors:[{code: 500, message: err.message}]
+				  }));
+        }
+
+        if (!branch._id){
+				  return next (new CustomError({
+        			status: 400,
+        			specific_errors: [enums.APPL_ERROR_CODES.BRANCH_DOES_NOT_EXIST]	
+      		}));
+		    }
+        else 
+          cb(null, branch);      
+    })
+  }],function completed (err, branch){
+      if (err){
+        return next(new CustomError({                            
+            status: 500,  
+            specific_errors:[{code: 500, message: err.message}]
+          }));
+      }
+
+      res.status = 200;
+      res.json(branch);
+    }) 
+
+  };
+
+
+
+/**
+ * Delete/Archive a single Branch.
+ *
+ * @desc Fetch a Branch with the given id from the database
+ *       and delete their data
+ *
+ * @param {Object} req HTTP Request Object
+ * @param {Object} res HTTP Response Object
+ * @param {Function} next Middleware dispatcher
+ */
+exports.delete = function deleteBranch(req, res, next) {
+  debug('deleting Branch:' + req.params.id);
+
+  var query = {
+    _id: req.params.id
+  };
+
+  branchDal.delete(query, function cb(err, branch) {
+    if(err) {
+      return next(CustomError({
+        status: 500,
+        specific_errors:[{code: 500, message: err.message}]
+      }));
+    }
+
+    if (!branch._id){
+				return next (new CustomError({
+        			status: 400,
+        			specific_errors: [enums.APPL_ERROR_CODES.BRANCH_DOES_NOT_EXIST]	
+      			}));
+		}
+
+    res.json(branch);
+
+  });
+
 };
+
+
+

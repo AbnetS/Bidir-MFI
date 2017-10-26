@@ -13,7 +13,7 @@
  * Load Module Dependencies.
  */
 var express  = require('express');
-var debug    = require('debug')('api:MFI-MFIr');
+var debug    = require('debug')('api:MFI-Router');
 var multer   = require('multer')
 
 var MFIController = require('../controllers/MFI');

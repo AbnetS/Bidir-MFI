@@ -1,8 +1,6 @@
 /** *
  * Load Module Dependencies.
  */
-var EventEmitter = require('events').EventEmitter;
-
 var debug      = require('debug')('api:MFI-controller');
 var async      = require('async');
 var moment     = require('moment');
@@ -163,7 +161,8 @@ exports.create = function createMFI(req, res, next) {
       MFIDal.getCount(query, function (err, count){
         if (err){
           return next(new CustomError({
-            status: 500
+            status: 500,
+            specific_errors:[{code: 500, message: err.message}]
           }));
         }
 
@@ -233,7 +232,15 @@ exports.fetchAll = function fetchAllMFIs(req, res, next) {
   });
 };
 
-
+/**
+ * Get a collection of MFIs with pagination
+ *
+ * @desc Fetch a collection of MFIs
+ *
+ * @param {Object} req HTTP Request Object
+ * @param {Object} res HTTP Response Object
+ * @param {Function} next Middleware dispatcher
+ */
 exports.fetchAllByPagination = function fetchAllMFIs(req, res, next) {
   debug('get a collection of MFIs');
 
@@ -312,8 +319,7 @@ exports.update = function updateMFI(req, res, next) {
   var query = {
     _id: req.params.id
   };
-  var body = req.body;
-  console.log(req.body)
+  var body = req.body;  
 
   async.waterfall([
     function validateLogoFileType(cb){
@@ -391,11 +397,11 @@ exports.update = function updateMFI(req, res, next) {
             cb(null)
           }
 }, function updateMFI(cb){
-      var MFIData = req.body;
+      var updates = req.body;
       if(req.file)             
-        MFIData.logo = req.file.path;
+        updates.logo = req.file.path;
 
-      MFIDal.update(query, MFIData, function (err, mfi) {
+      MFIDal.update(query, updates, function (err, mfi) {
         if(err) {  
           return next(CustomError({
         			status: 500,					
@@ -422,7 +428,7 @@ exports.update = function updateMFI(req, res, next) {
           }));
       }
 
-      res.status = 201;
+      res.status = 200;
       res.json(mfi);
     })
 
@@ -470,15 +476,7 @@ exports.delete = function deleteMFI(req, res, next) {
 
 };
 
-/**
- * Get a collection of MFIs with pagination
- *
- * @desc Fetch a collection of MFIs
- *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
- * @param {Function} next Middleware dispatcher
- */
+
 
 
 
