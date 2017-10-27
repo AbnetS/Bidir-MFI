@@ -69,6 +69,8 @@ branchRouter.post('/register', branchController.create);
  */
 branchRouter.get('/paginate'/*, accessControl('admin')*/, branchController.fetchAllByPagination);
 
+branchRouter.get('/search'/*, accessControl('admin')*/, branchController.search);
+
 
 /**
  * @api {get} /branchs/:id Get branch
@@ -99,6 +101,12 @@ branchRouter.get('/:id'/*, accessControl(['branch', 'admin'])*/, branchControlle
  *
  */
 branchRouter.put('/:id', /*accessControl(['branch', 'admin']),*/ branchController.update);
+
+branchRouter.put('/:id/deactivate', /*accessControl(['branch', 'admin']),*/ branchController.deactivate);
+
+branchRouter.put('/:id/activate', /*accessControl(['branch', 'admin']),*/ branchController.activate);
+
+
 
 
 

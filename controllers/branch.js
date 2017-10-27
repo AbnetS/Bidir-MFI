@@ -3,15 +3,15 @@ var async      = require('async');
 var moment     = require('moment');
 var _          = require('lodash');
 
-var branchDal       = require ('../dal/Branch');
+var branchModel       = require ('../models/branch');
+var branchDal       = require ('../dal/branch');
 var MFIDal          = require ('../dal/MFI');
 var config          = require('../config');
 var CustomError     = require('../lib/custom-error');
 var enums           = require('../lib/enums');
 
-
 exports.validateBranchId = function validateBranchId(req, res, next, id) {
-  //Validate the id is mongoid or not
+  //Validate the id is`x mongoid or not
   req.checkParams('id', 'Invalid Id parameter').isMongoId(id);
 
   var validationErrors = req.validationErrors();
@@ -361,6 +361,125 @@ exports.delete = function deleteBranch(req, res, next) {
   });
 
 };
+
+exports.activate = function activateBranch(req, res, next) {
+  debug('deactivatiing Branch:' + req.params.id);
+
+  var query = {
+    _id: req.params.id
+  };
+  var updates = {status: 'active'}
+
+  branchDal.update(query, updates, function cb(err, branch) {
+    if(err) {
+      return next(CustomError({
+        status: 500,
+        specific_errors:[{code: 500, message: err.message}]
+      }));
+    }
+
+    if (!branch._id){
+				return next (new CustomError({
+        			status: 400,
+        			specific_errors: [enums.APPL_ERROR_CODES.BRANCH_DOES_NOT_EXIST]	
+      			}));
+		}
+
+    res.json(branch);
+
+  });
+
+};
+
+exports.deactivate = function deactivateBranch(req, res, next) {
+  debug('deactivatiing Branch:' + req.params.id);
+
+  var query = {
+    _id: req.params.id
+  };
+  var updates = {status: 'inactive'}
+
+  branchDal.update(query, updates, function cb(err, branch) {
+    if(err) {
+      return next(CustomError({
+        status: 500,
+        specific_errors:[{code: 500, message: err.message}]
+      }));
+    }
+
+    if (!branch._id){
+				return next (new CustomError({
+        			status: 400,
+        			specific_errors: [enums.APPL_ERROR_CODES.BRANCH_DOES_NOT_EXIST]	
+      			}));
+		}
+
+    res.json(branch);
+
+  });
+
+};
+
+exports.search = function searchBranch(req, res, next){
+  //check if all paramters are valid
+  var query = {};
+  var param_not_found = [];
+
+  if (Object.keys(req.query).length === 0){
+    return next(new CustomError({
+      status: 400,
+      specific_errors:[enums.APPL_ERROR_CODES.SEARCH_PARAM_NOT_GIVEN]
+    }))
+  } 
+
+
+  for (param in req.query){
+    //exclude MFI and opening_date, though it is a valid key in branch schema, search is not applicable  
+    if (param === 'MFI') param_not_found.push(param); 
+    else if (param === 'opening_date') param_not_found.push(param);
+    //exclude non exisitng branch attributes
+    else if (!(Object.keys(branchModel.schema.paths).includes(param)))
+      param_not_found.push(param);
+    else
+      query[param] = {$regex: req.query[param], $options:"$i"} 
+         
+  }
+
+  if (param_not_found.length > 0){
+    var error = enums.APPL_ERROR_CODES.INVALID_SEARCH_PARAM;    
+    error.source = param_not_found.toString();
+    return next (new CustomError({
+      status: 400,
+      specific_errors:[error]
+    }))
+  }
+  
+  branchDal.getCollection (query, function (err, branches){
+    if (err){
+      return next (new CustomError ({
+        status: 500,
+        specific_errors: [{code: 500, message: err.message}]
+      }))
+    }
+  
+
+    if (branches.length == 0){
+      res.status = 200.
+      res.json({
+        message: 'No branches that match the given condition(s) can be found'
+      })
+    }
+    else{
+      res.status = 200.
+      res.json({
+        message: 'Branch(es) are found',
+        branches: branches
+      })
+    }
+  })
+  
+}
+
 
 
 
