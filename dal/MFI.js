@@ -5,7 +5,7 @@ var mongoose = require ('mongoose');
 var debug = require ('debug') ('Bidir-api-mfi-dal')
 var moment = require ('moment');
 
-var mfiModel 	= require ('../models/mfi');
+var mfiModel 	= require ('../models/MFI');
 var enums		= require ('../lib/enums');
 var CustomError     = require('../lib/custom-error');
 
