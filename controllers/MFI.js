@@ -485,30 +485,59 @@ exports.update = function updateMFI(req, res, next) {
  * @param {Function} next Middleware dispatcher
  */
 exports.delete = function deleteMFI(req, res, next) {
+  //Delete MFI Workflow:
+  //1. Delete All branches of the MFI 
+  //2. Delete the MFI itself.
+  //3. Respond
+
   debug('deleting MFI:' + req.params.id);
 
   var query = {
     _id: req.params.id
   };
 
-  MFIDal.delete(query, function cb(err, mfi) {
-    if(err) {
-      return next(CustomError({
-        status: 500,
-        specific_errors:[{code: 500, message: err.message}]
-      }));
-    }
+  async.waterfall([
+    function DeleteAllBranches(cb){
+      branchDal.deleteAll(function (err){
+        if (err){
+          return next(CustomError({
+            status: 500,
+            specific_errors:[{code: 500, message: err.message}]
+          }));
+        }
 
-    if (!mfi._id){
-				return next (new CustomError({
-        			status: 400,
-        			specific_errors: [enums.APPL_ERROR_CODES.MFI_DOES_NOT_EXIST]	
-      			}));
-		}
+        cb (null)
+      })
+    }, function deleteMFI(cb){
+      MFIDal.delete(query, function cb(err, mfi) {
+      if(err) {
+        return next(CustomError({
+          status: 500,
+          specific_errors:[{code: 500, message: err.message}]
+        }));
+      }
 
-    res.json(mfi);
+      if (!mfi._id){
+          return next (new CustomError({
+                status: 400,
+                specific_errors: [enums.APPL_ERROR_CODES.MFI_DOES_NOT_EXIST]	
+              }));
+      }
 
-  });
+      res.json(mfi);
+
+    });
+  }], function completed (err, mfi){
+      if (err){
+        return next(new CustomError({                            
+            status: 500,  
+            specific_errors:[{code: 500, message: err.message}]
+          }));
+      }
+
+      res.status = 200;
+      res.json(mfi);
+    })  
 
 };
 
