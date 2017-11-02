@@ -10,6 +10,7 @@ var multer     = require ('multer');
 var multiparty      = require ('multiparty');
 
 var MFIDal          = require ('../dal/MFI');
+var branchDal       = require ('../dal/branch');
 var config          = require('../config');
 var CustomError     = require('../lib/custom-error');
 var enums           = require('../lib/enums');
@@ -150,7 +151,8 @@ exports.create = function createMFI(req, res, next) {
   //3. Upload the logo
   //3. Create the MFI
   //4. If logo is provided, update the MFI document with the logo path.
-  //5. Respond.
+  //5. Create a default head office branch
+  //6. Respond.
   
 
   async.waterfall([    
@@ -192,6 +194,41 @@ exports.create = function createMFI(req, res, next) {
           else
             cb (null, mfi);
         })
+    }, function createHeadOfficeBranch(mfi, cb){
+      var branchData = {};
+      branchData.MFI = mfi._id;
+      branchData.name ='Head Office';
+      branchData.location = mfi.location;
+      branchData.branch_type = 'Head Office';
+      if (mfi.email)
+        branchData.email = mfi.email;
+      else if (mfi.phone)
+        branchData.phone = mfi.phone;    
+
+      console.log(branchData)
+      branchDal.create(branchData, function (err, headOfficeBranch){
+        if (err){          
+          return next (new CustomError ({
+            status: 500,
+            specific_errors:[{code: 500, message: err.message}]           
+          }))
+        }
+        else
+          cb (null, mfi, headOfficeBranch);
+      })      
+    }, function addHeadOfficeBranchToMFI(mfi, headOfficeBranch, cb){
+      var updates = {$push:{branches: headOfficeBranch._id}};
+
+      MFIDal.update({_id: mfi._id}, updates, function (err, mfi){
+        if (err){
+          return next (new CustomError ({
+            status: 500,
+            specific_errors:[{code: 500, message: err.message}]            
+          }))
+        }
+        else
+          cb (null, mfi)
+      })
     }], function completed (err, mfi){
         if (err){
           return next(new CustomError({                            

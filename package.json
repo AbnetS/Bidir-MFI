@@ -1,5 +1,5 @@
 {
-  "name": "Bidir - MFI",
+  "name": "Bidir MFI",
   "version": "1.0.0",
   "description": "BIDIR-MFI MICROSERVICE API",
   "main": "app.js",
@@ -15,7 +15,7 @@
     "type": "git",
     "url": ""
   },
-  "author": "Tony Mutai <tony@gebeya.com>",
+  "author": "Abnet Shimeles <abinet@gebeya.com>",
   "license": "",
   "bugs": {
     "url": ""
