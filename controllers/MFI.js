@@ -205,7 +205,6 @@ exports.create = function createMFI(req, res, next) {
       else if (mfi.phone)
         branchData.phone = mfi.phone;    
 
-      console.log(branchData)
       branchDal.create(branchData, function (err, headOfficeBranch){
         if (err){          
           return next (new CustomError ({
