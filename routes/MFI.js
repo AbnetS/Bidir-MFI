@@ -22,7 +22,7 @@ var accessControl  = require('../controllers/access-control').accessControl;
 var MFIRouter  = express.Router();
 
 /**
- * @api {post} /MFIs/register Register MFI
+ * @api {post} /MFIs Registers MFI
  * @apiVersion 1.0.0
  * @apiName Create
  * @apiGroup MFI
@@ -44,7 +44,7 @@ var MFIRouter  = express.Router();
  *  }
  *
  */
-MFIRouter.post('/register', MFIController.create);
+MFIRouter.post('/', MFIController.create);
 
 /**
  * @api {get} /MFIs/paginate?page=<RESULTS_PAGE>&per_page=<RESULTS_PER_PAGE> Get MFIs collection

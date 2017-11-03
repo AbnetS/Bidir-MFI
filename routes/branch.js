@@ -21,7 +21,7 @@ var accessControl  = require('../controllers/access-control').accessControl;
 var branchRouter  = express.Router();
 
 /**
- * @api {post} /branches/register Register branch
+ * @api {post} /branches Register branch
  * @apiVersion 1.0.0
  * @apiName Create
  * @apiGroup branch
@@ -43,7 +43,7 @@ var branchRouter  = express.Router();
  *  }
  *
  */
-branchRouter.post('/register', branchController.create);
+branchRouter.post('/', branchController.create);
 
 /**
  * @api {get} /branchs/paginate?page=<RESULTS_PAGE>&per_page=<RESULTS_PER_PAGE> Get branchs collection
