@@ -5,7 +5,7 @@ var env     = process.env;
 
 var PORT        = env.PORT || 8000;
 var API_URL     = '127.0.0.1:8000';
-var MONGODB_URL = env.MONGODB_URL || 'mongodb://127.0.0.1:27017/Bidir';
+var MONGODB_URL = env.MONGODB_URL || 'mongodb://127.0.0.1:27017/bidir';
 var NODE_ENV    = env.NODE_ENV || 'development';
 var HOST        = 'localhost';
 
