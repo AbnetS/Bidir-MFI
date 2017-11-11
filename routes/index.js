@@ -31,9 +31,7 @@ module.exports = function initRoutes(app) {
 module.exports.OPEN_ENDPOINTS = [
     /\/media\/.*/,
     /\/documentation\/.*/,
-    '/users/login',
-    '/users/signup',
     '/',
-    '/MFIs/register'
+    '/MFIs'
 ];
 
