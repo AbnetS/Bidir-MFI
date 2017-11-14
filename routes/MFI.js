@@ -1,143 +1,199 @@
-/**
- * MFI MFIr.
- *
- * @summary
- *  MFI.create()
- *  MFI.update()
- *  MFI.delete()
- *  MFI.fetchOne()
- *  MFI.fetchAll()
- */
-
+'use strict';
 /**
  * Load Module Dependencies.
  */
-var express  = require('express');
-var debug    = require('debug')('api:MFI-Router');
-var multer   = require('multer')
+const Router  = require('koa-router');
+const debug   = require('debug')('api:mfi-router');
 
-var MFIController = require('../controllers/MFI');
-var accessControl  = require('../controllers/access-control').accessControl;
+const mfiController  = require('../controllers/MFI');
+const authController     = require('../controllers/auth');
 
-var MFIRouter  = express.Router();
+const acl               = authController.accessControl;
+var router  = Router();
 
 /**
- * @api {post} /MFIs Registers MFI
+ * @api {post} /MFI/create Create new MFI
  * @apiVersion 1.0.0
- * @apiName Create
+ * @apiName CreateMFI
  * @apiGroup MFI
  *
- * @apiDescription Create a new MFI.
+ * @apiDescription Create new MFI. Data to be submitted as multipart/form-data
  *
- * @apiParam {String} name of the MFI
+ * @apiParam {String} name MFI Name
+ * @apiParam {String} location MFI location
+ * @apiParam {String} logo MFI logo
+ * @apiParam {String} establishment_year Establishment Year
+ * @apiParam {String} website_link Website Link
+ * @apiParam {String} email MFI Contact Email Address
+ * @apiParam {String} phone MFI Contact Phone Number
+ * @apiParam {String} contact_person MFI Contact Person
  *
  * @apiParamExample Request Example:
  *  {
- *    "name": "Jumia Online Shop"
+ *    logo: "<DATA_OBJECT>",
+ *    name: "MFI",
+ *    email: "contact@mfi.com",
+ *    contact_person: "Mary Jane",
+ *    phone: "0967889977",
+ *    establishment_year: "1992",
+ *    location: "Radisson Blu, That Avenue, 3rd Floor, Addis Ababa, Ethiopia",
+ *    website_link: "https://MFI.com/"
  *  }
  *
- * @apiSuccess {String} _id MFI id
+ * @apiSuccess {String} _id mfi id
+ * @apiSuccess {String} name MFI Name
+ * @apiSuccess {String} location MFI location
+ * @apiSuccess {String} logo MFI logo
+ * @apiSuccess {String} establishment_year Establishment Year
+ * @apiSuccess {String} website_link Website Link
+ * @apiSuccess {String} email MFI Contact Email Address
+ * @apiSuccess {String} phone MFI Contact Phone Number
+ * @apiSuccess {String} contact_person MFI Contact Person
+ * @apiSuccess {Array} branches MFI Branches
  *
  * @apiSuccessExample Response Example:
  *  {
- *    "_id" : "556e1174a8952c9521286a60"
+ *    _id : "556e1174a8952c9521286a60",
+ *    logo: "https://fb.cdn.ugusgu.us./MFI/285475474224.png",
+ *    name: "MFI",
+ *    email: "contact@mfi.com",
+ *    contact_person: "Mary Jane",
+ *    phone: "0967889977",
+ *    establishment_year: "1992",
+ *    location: "Radisson Blu, That Avenue, 3rd Floor, Addis Ababa, Ethiopia",
+ *    website_link: "https://MFI.com/",
+ *    branches: []
  *  }
  *
  */
-MFIRouter.post('/', MFIController.create);
+router.post('/create', acl(['admin']), mfiController.create);
+
 
 /**
- * @api {get} /MFIs/paginate?page=<RESULTS_PAGE>&per_page=<RESULTS_PER_PAGE> Get MFIs collection
+ * @api {get} /MFI/paginate?page=<RESULTS_PAGE>&per_page=<RESULTS_PER_PAGE> Get mfis collection
  * @apiVersion 1.0.0
- * @apiName FetchAllByPagination
+ * @apiName FetchPaginated
  * @apiGroup MFI
  *
- * @apiDescription Get a collection of MFIs. The endpoint has pagination
+ * @apiDescription Get a collection of mfis. The endpoint has pagination
  * out of the box. Use these params to query with pagination: `page=<RESULTS_PAGE`
  * and `per_page=<RESULTS_PER_PAGE>`.
  *
- * @apiSuccess {String} _id MFI id
+ * @apiSuccess {String} _id mfi id
+ * @apiSuccess {String} name MFI Name
+ * @apiSuccess {String} location MFI location
+ * @apiSuccess {String} logo MFI logo
+ * @apiSuccess {String} establishment_year Establishment Year
+ * @apiSuccess {String} website_link Website Link
+ * @apiSuccess {String} email MFI Contact Email Address
+ * @apiSuccess {String} phone MFI Contact Phone Number
+ * @apiSuccess {String} contact_person MFI Contact Person
+ * @apiSuccess {Array} branches MFI Branches
  *
  * @apiSuccessExample Response Example:
  *  {
  *    "total_pages": 1,
  *    "total_docs_count": 0,
  *    "docs": [{
- *      "_id" : "556e1174a8952c9521286a60"
+ *    		_id : "556e1174a8952c9521286a60",
+ *    		logo: "https://fb.cdn.ugusgu.us./MFI/285475474224.png",
+ *    		name: "MFI",
+ *    		email: "contact@mfi.com",
+ *    		contact_person: "Mary Jane",
+ *    		phone: "0967889977",
+ *    		establishment_year: "1992",
+ *    		location: "Radisson Blu, That Avenue, 3rd Floor, Addis Ababa, Ethiopia",
+ *    		website_link: "https://MFI.com/",
+ *    		branches: []
  *    }]
  *  }
- *
  */
-MFIRouter.get('/paginate'/*, accessControl('admin')*/, MFIController.fetchAllByPagination);
-
+router.get('/paginate', acl(['*']), mfiController.fetchAllByPagination);
 
 /**
- * @api {get} /MFIs/:id Get MFI
+ * @api {get} /MFI/:id Get MFI MFI
  * @apiVersion 1.0.0
  * @apiName Get
  * @apiGroup MFI
  *
- * @apiDescription Get a MFI with the given id
+ * @apiDescription Get a user mfi with the given id
+ *
+ * @apiSuccess {String} _id mfi id
+ * @apiSuccess {String} name MFI Name
+ * @apiSuccess {String} location MFI location
+ * @apiSuccess {String} logo MFI logo
+ * @apiSuccess {String} establishment_year Establishment Year
+ * @apiSuccess {String} website_link Website Link
+ * @apiSuccess {String} email MFI Contact Email Address
+ * @apiSuccess {String} phone MFI Contact Phone Number
+ * @apiSuccess {String} contact_person MFI Contact Person
+ * @apiSuccess {Array} branches MFI Branches
+ *
+ * @apiSuccessExample Response Example:
+ *  {
+ *    _id : "556e1174a8952c9521286a60",
+ *    logo: "https://fb.cdn.ugusgu.us./MFI/285475474224.png",
+ *    name: "MFI",
+ *    email: "contact@mfi.com",
+ *    contact_person: "Mary Jane",
+ *    phone: "0967889977",
+ *    establishment_year: "1992",
+ *    location: "Radisson Blu, That Avenue, 3rd Floor, Addis Ababa, Ethiopia",
+ *    website_link: "https://MFI.com/",
+ *    branches: [{
+ *	    _id : "556e1174a8952c9521286a60",
+ *      ...
+ *    }]
+ *  }
  *
  */
-MFIRouter.param('id', MFIController.validateMFIId);
-MFIRouter.get('/:id'/*, accessControl(['MFI', 'admin'])*/, MFIController.fetchOne);
+router.get('/:id', acl(['*']), mfiController.fetchOne);
+
 
 /**
- * @api {put} /MFIs/:id Update MFI
+ * @api {put} /MFI/:id Update MFI MFI
  * @apiVersion 1.0.0
  * @apiName Update
- * @apiGroup MFI
+ * @apiGroup MFI 
  *
- * @apiDescription Update a MFI with the given id
+ * @apiDescription Update a MFI mfi with the given id
  *
- * @apiSuccess {String} _id MFI id
+ * @apiParam {Object} Data Update data
  *
- * @apiSuccessExample Response Example:
- *  {
- *    "_id" : "556e1174a8952c9521286a60"
- *  }
+ * @apiParamExample Request example:
+ * {
+ *    notes: "FB"
+ * }
  *
- */
-MFIRouter.put('/:id', /*accessControl(['MFI', 'admin']),*/ MFIController.update);
-
-
-
-/**
- * @api {get} /MFIs Get MFIs collection
- * @apiVersion 1.0.0
- * @apiName FetchAll
- * @apiGroup MFI
- *
- * @apiDescription Get a collection of MFIs.
- *
- * @apiSuccess {String} _id MFI id
- *
- * @apiSuccessExample Response Example:
- *  [{
- *      "_id" : "556e1174a8952c9521286a60"
- *  }]
- *
- */
-MFIRouter.get('/', /*accessControl('admin'),*/ MFIController.fetchAll);
-
-/**
- * @api {delete} /MFIs/:id Delete MFI
- * @apiVersion 1.0.0
- * @apiName Delete
- * @apiGroup MFI
- *
- * @apiDescription Delete a MFI with the given id
- *
- * @apiSuccess {String} _id MFI id
+ * @apiSuccess {String} _id mfi id
+ * @apiSuccess {String} name MFI Name
+ * @apiSuccess {String} location MFI location
+ * @apiSuccess {String} logo MFI logo
+ * @apiSuccess {String} establishment_year Establishment Year
+ * @apiSuccess {String} website_link Website Link
+ * @apiSuccess {String} email MFI Contact Email Address
+ * @apiSuccess {String} phone MFI Contact Phone Number
+ * @apiSuccess {String} contact_person MFI Contact Person
+ * @apiSuccess {Array} branches MFI Branches
  *
  * @apiSuccessExample Response Example:
  *  {
- *    "_id" : "556e1174a8952c9521286a60"
+ *    _id : "556e1174a8952c9521286a60",
+ *    logo: "https://fb.cdn.ugusgu.us./MFI/285475474224.png",
+ *    name: "MFI",
+ *    email: "contact@mfi.com",
+ *    contact_person: "Mary Jane",
+ *    phone: "0967889977",
+ *    establishment_year: "1992",
+ *    location: "Radisson Blu, That Avenue, 3rd Floor, Addis Ababa, Ethiopia",
+ *    website_link: "https://MFI.com/",
+ *    branches: [{
+ *	    _id : "556e1174a8952c9521286a60",
+ *      ...
+ *    }]
  *  }
- *
  */
-MFIRouter.delete('/:id'/*, accessControl('admin')*/, MFIController.delete);
+router.put('/:id', acl(['*']), mfiController.update);
 
-// Expose MFI MFIr
-module.exports = MFIRouter;
+// Expose MFI Router
+module.exports = router;

@@ -1,10 +1,13 @@
-# API
+# Screening Service.
 
-## TERMS.
+Responsibilities:
 
-- `user.realm` - Group users are associated with.
-- `user.role` - Role of the user in the respective they belong to.
+- Client Registration
+- Client Screening
+
+### Internals
+Port `8040`
 
 ## License.
 
-Gebeya.
+Bidir

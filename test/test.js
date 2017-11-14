@@ -1,20 +1,11 @@
-const supertest = require('supertest');
-var app = require ('../app');
+const request = require('supertest');
+var app = require ('../app')
 
-
-
-//registers an MFI
-supertest(app)
-  .get('/MFIs')
-  //.expect('Content-Type', /json/)
-  //.attach('logo', 'D:\\Projects\\Smart Africa\\UX UI\\09_Program_Sessions.png')
-  //.field ('name', 'Buusa Gonofa')
+request(app)
+  .post('/branches/register')
+  .expect('Content-Type', /json/)
   .expect('Content-Length', '163')
-  //.expect().
-  //.send()
+  .expect(201)
   .end(function(err, res) {
-   	if (err) 
-			console.log(err)
-			//throw err;
-    console.log(res)
+    if (err) throw err;
   });

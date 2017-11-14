@@ -1,21 +1,27 @@
+'use strict';
 // Token Model Definiton.
 
 /**
  * Load Module Dependencies.
  */
-var mongoose  = require('mongoose');
-var moment    = require('moment');
+const mongoose  = require('mongoose');
+const moment    = require('moment');
+const paginator = require('mongoose-paginate');
 
 var Schema = mongoose.Schema;
 
+// New Token Schema Instance
 var TokenSchema = new Schema({
-  value:          { type: String },
+  value:          { type: String, default: 'NULL' },
   revoked:        { type: Boolean, default: true },
   user:           { type: Schema.Types.ObjectId, ref: 'User' },
+  expires:        { type: Date, default: null },
   date_created:   { type: Date },
   last_modified:  { type: Date }
 });
 
+// add middleware to support pagination
+TokenSchema.plugin(paginator);
 
 /**
  * Pre save middleware.
@@ -25,10 +31,10 @@ var TokenSchema = new Schema({
  *        - Hash tokens password.
  */
 TokenSchema.pre('save', function preSaveMiddleware(next) {
-  var token = this;
+  let token = this;
 
   // set date modifications
-  var now = moment().toISOString();
+  let now = moment().toISOString();
 
   token.date_created = now;
   token.last_modified = now;
@@ -40,11 +46,11 @@ TokenSchema.pre('save', function preSaveMiddleware(next) {
 /**
  * Model Attributes to expose
  */
-TokenSchema.statics.whitelist = {
-  _id: 1,
+TokenSchema.statics.attributes = {
   value: 1,
   revoked: 1,
   user: 1,
+  expires: 1,
   date_created: 1
 };
 

@@ -1,150 +1,240 @@
-/**
- * branch router.
- *
- * @summary
- *  branch.create()
- *  branch.update()
- *  branch.delete()
- *  branch.fetchOne()
- *  branch.fetchAll()
- */
-
+'use strict';
 /**
  * Load Module Dependencies.
  */
-var express  = require('express');
-var debug    = require('debug')('api:branch-router');
+const Router  = require('koa-router');
+const debug   = require('debug')('api:branch-router');
 
-var branchController = require('../controllers/branch');
-var accessControl  = require('../controllers/access-control').accessControl;
+const branchController  = require('../controllers/branch');
+const authController     = require('../controllers/auth');
 
-var branchRouter  = express.Router();
+const acl               = authController.accessControl;
+var router  = Router();
 
 /**
- * @api {post} /branches Register branch
+ * @api {post} /MFI/branches/create Create new branch
  * @apiVersion 1.0.0
- * @apiName Create
- * @apiGroup branch
+ * @apiName Createbranch
+ * @apiGroup Branch
  *
- * @apiDescription Create a new branch.
+ * @apiDescription Create new branch
  *
- * @apiParam {String} name of the branch
+ * @apiParam {String} MFI Parent MFI Reference ID
+ * @apiParam {String} name Branch Name
+ * @apiParam {String} location Branch Location
+ * @apiParam {String} opening_date Opening Date
+ * @apiParam {String} branch_type Branch Type
+ * @apiParam {String} email Branch Contact Email Address
+ * @apiParam {String} phone Branch Contact Phone Number
+ * @apiParam {String} [status] Branch Status, defaults to active
  *
  * @apiParamExample Request Example:
  *  {
- *    "name": "Jumia Online Shop"
+ *    MFI: "556e1174a8952c9521286a60",
+ *    name: "Branch",
+ *    email: "branch@mfi.com",
+ *    phone: "0987654321",
+ *    location: "Bole, Addis Ababa, Ethiopia",
+ *    opening_date: "2017-10-10T00:00.000Z",
+ *    branch_type: "Local"
  *  }
  *
  * @apiSuccess {String} _id branch id
+ * @apiSuccess {Object} MFI Parent MFI Reference 
+ * @apiSuccess {String} name Branch Name
+ * @apiSuccess {String} location Branch Location
+ * @apiSuccess {String} opening_date Opening Date
+ * @apiSuccess {String} branch_type Branch Type
+ * @apiSuccess {String} email Branch Contact Email Address
+ * @apiSuccess {String} phone Branch Contact Phone Number
+ * @apiSuccess {String} status Branch Status, defaults to active
  *
  * @apiSuccessExample Response Example:
  *  {
- *    "_id" : "556e1174a8952c9521286a60"
+ *    _id : "556e1174a8952c9521286a60"
+ *    MFI: {
+ *      _id : "556e1174a8952c9521286a60",
+ *      ...
+ *    },
+ *    name: "Branch",
+ *    email: "branch@mfi.com",
+ *    phone: "0987654321",
+ *    location: "Bole, Addis Ababa, Ethiopia",
+ *    opening_date: "2017-10-10T00:00.000Z",
+ *    branch_type: "Local",
+ *    status: "active"
  *  }
  *
  */
-branchRouter.post('/', branchController.create);
+router.post('/create', acl(['*']), branchController.create);
+
 
 /**
- * @api {get} /branchs/paginate?page=<RESULTS_PAGE>&per_page=<RESULTS_PER_PAGE> Get branchs collection
+ * @api {get} /MFI/branches/paginate?page=<RESULTS_PAGE>&per_page=<RESULTS_PER_PAGE> Get branchs collection
  * @apiVersion 1.0.0
- * @apiName FetchAllByPagination
- * @apiGroup branch
+ * @apiName FetchPaginated
+ * @apiGroup Branch
  *
  * @apiDescription Get a collection of branchs. The endpoint has pagination
  * out of the box. Use these params to query with pagination: `page=<RESULTS_PAGE`
  * and `per_page=<RESULTS_PER_PAGE>`.
  *
  * @apiSuccess {String} _id branch id
+ * @apiSuccess {Object} MFI Parent MFI Reference 
+ * @apiSuccess {String} name Branch Name
+ * @apiSuccess {String} location Branch Location
+ * @apiSuccess {String} opening_date Opening Date
+ * @apiSuccess {String} branch_type Branch Type
+ * @apiSuccess {String} email Branch Contact Email Address
+ * @apiSuccess {String} phone Branch Contact Phone Number
+ * @apiSuccess {String} status Branch Status, defaults to active
  *
  * @apiSuccessExample Response Example:
  *  {
  *    "total_pages": 1,
  *    "total_docs_count": 0,
  *    "docs": [{
- *      "_id" : "556e1174a8952c9521286a60"
+ *    	_id : "556e1174a8952c9521286a60"
+ *    	MFI: {
+ *      	_id : "556e1174a8952c9521286a60",
+ *      	...
+ *    	},
+ *    	name: "Branch",
+ *    	email: "branch@mfi.com",
+ *    	phone: "0987654321",
+ *    	location: "Bole, Addis Ababa, Ethiopia",
+ *    	opening_date: "2017-10-10T00:00.000Z",
+ *    	branch_type: "Local",
+ *    status: "active"
  *    }]
  *  }
- *
  */
-branchRouter.get('/paginate'/*, accessControl('admin')*/, branchController.fetchAllByPagination);
-
-branchRouter.get('/search'/*, accessControl('admin')*/, branchController.search);
-
+router.get('/paginate', acl(['*']), branchController.fetchAllByPagination);
 
 /**
- * @api {get} /branchs/:id Get branch
+ * @api {get} /MFI/branches/:id Get branch branch
  * @apiVersion 1.0.0
  * @apiName Get
- * @apiGroup branch
+ * @apiGroup Branch
  *
- * @apiDescription Get a branch with the given id
+ * @apiDescription Get a user branch with the given id
+ *
+ * @apiSuccess {String} _id branch id
+ * @apiSuccess {Object} MFI Parent MFI Reference 
+ * @apiSuccess {String} name Branch Name
+ * @apiSuccess {String} location Branch Location
+ * @apiSuccess {String} opening_date Opening Date
+ * @apiSuccess {String} branch_type Branch Type
+ * @apiSuccess {String} email Branch Contact Email Address
+ * @apiSuccess {String} phone Branch Contact Phone Number
+ * @apiSuccess {String} status Branch Status, defaults to active
+ *
+ * @apiSuccessExample Response Example:
+ *  {
+ *    _id : "556e1174a8952c9521286a60"
+ *    MFI: {
+ *      _id : "556e1174a8952c9521286a60",
+ *      ...
+ *    },
+ *    name: "Branch",
+ *    email: "branch@mfi.com",
+ *    phone: "0987654321",
+ *    location: "Bole, Addis Ababa, Ethiopia",
+ *    opening_date: "2017-10-10T00:00.000Z",
+ *    branch_type: "Local",
+ *    status: "active"
+ *  }
  *
  */
-branchRouter.param('id', branchController.validateBranchId);
-branchRouter.get('/:id'/*, accessControl(['branch', 'admin'])*/, branchController.fetchOne);
+router.get('/:id', acl(['*']), branchController.fetchOne);
+
 
 /**
- * @api {put} /branchs/:id Update branch
+ * @api {put} /MFI/branches/:id Update branch branch
  * @apiVersion 1.0.0
  * @apiName Update
- * @apiGroup branch
+ * @apiGroup Branch 
  *
- * @apiDescription Update a branch with the given id
+ * @apiDescription Update a branch branch with the given id
+ *
+ * @apiParam {Object} Data Update data
+ *
+ * @apiParamExample Request example:
+ * {
+ *    phone: "0987654321"
+ * }
  *
  * @apiSuccess {String} _id branch id
+ * @apiSuccess {Object} MFI Parent MFI Reference 
+ * @apiSuccess {String} name Branch Name
+ * @apiSuccess {String} location Branch Location
+ * @apiSuccess {String} opening_date Opening Date
+ * @apiSuccess {String} branch_type Branch Type
+ * @apiSuccess {String} email Branch Contact Email Address
+ * @apiSuccess {String} phone Branch Contact Phone Number
+ * @apiSuccess {String} status Branch Status, defaults to active
  *
  * @apiSuccessExample Response Example:
  *  {
- *    "_id" : "556e1174a8952c9521286a60"
+ *    _id : "556e1174a8952c9521286a60"
+ *    MFI: {
+ *      _id : "556e1174a8952c9521286a60",
+ *      ...
+ *    },
+ *    name: "Branch",
+ *    email: "branch@mfi.com",
+ *    phone: "0987654321",
+ *    location: "Bole, Addis Ababa, Ethiopia",
+ *    opening_date: "2017-10-10T00:00.000Z",
+ *    branch_type: "Local",
+ *    status: "active"
  *  }
- *
  */
-branchRouter.put('/:id', /*accessControl(['branch', 'admin']),*/ branchController.update);
-
-branchRouter.put('/:id/deactivate', /*accessControl(['branch', 'admin']),*/ branchController.deactivate);
-
-branchRouter.put('/:id/activate', /*accessControl(['branch', 'admin']),*/ branchController.activate);
-
-
-
-
+router.put('/:id', acl(['*']), branchController.update);
 
 /**
- * @api {get} /branchs Get branchs collection
+ * @api {put} /MFI/branches/:id/status Update branch Status
  * @apiVersion 1.0.0
- * @apiName FetchAll
- * @apiGroup branch
+ * @apiName UpdateStatus
+ * @apiGroup Branch 
  *
- * @apiDescription Get a collection of branchs.
+ * @apiDescription Update a branch status with the given id
+ *
+ * @apiParam {Object} status Status active or inactive
+ *
+ * @apiParamExample Request example:
+ * {
+ *    status: "inactive"
+ * }
  *
  * @apiSuccess {String} _id branch id
- *
- * @apiSuccessExample Response Example:
- *  [{
- *      "_id" : "556e1174a8952c9521286a60"
- *  }]
- *
- */
-branchRouter.get('/', /*accessControl('admin'),*/ branchController.fetchAll);
-
-/**
- * @api {delete} /branchs/:id Delete branch
- * @apiVersion 1.0.0
- * @apiName Delete
- * @apiGroup branch
- *
- * @apiDescription Delete a branch with the given id
- *
- * @apiSuccess {String} _id branch id
+ * @apiSuccess {Object} MFI Parent MFI Reference 
+ * @apiSuccess {String} name Branch Name
+ * @apiSuccess {String} location Branch Location
+ * @apiSuccess {String} opening_date Opening Date
+ * @apiSuccess {String} branch_type Branch Type
+ * @apiSuccess {String} email Branch Contact Email Address
+ * @apiSuccess {String} phone Branch Contact Phone Number
+ * @apiSuccess {String} status Branch Status, defaults to active
  *
  * @apiSuccessExample Response Example:
  *  {
- *    "_id" : "556e1174a8952c9521286a60"
+ *    _id : "556e1174a8952c9521286a60"
+ *    MFI: {
+ *      _id : "556e1174a8952c9521286a60",
+ *      ...
+ *    },
+ *    name: "Branch",
+ *    email: "branch@mfi.com",
+ *    phone: "0987654321",
+ *    location: "Bole, Addis Ababa, Ethiopia",
+ *    opening_date: "2017-10-10T00:00.000Z",
+ *    branch_type: "Local",
+ *    status: "inactive"
  *  }
- *
  */
-branchRouter.delete('/:id'/*, accessControl('admin')*/, branchController.delete);
+router.put('/:id/status', acl(['*']), branchController.updateStatus);
 
-// Expose branch branchr
-module.exports = branchRouter;
+
+// Expose branch Router
+module.exports = router;

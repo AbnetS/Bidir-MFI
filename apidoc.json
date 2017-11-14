@@ -1,8 +1,9 @@
 {
-  "name": "<Name> API",
+  "name": "Screening API",
   "version": "1.0.0",
   "description": "HTTP API service",
   "title": "API documentation",
-  "doc-url": ""
+  "doc-url": "docs.bidir.com/",
+  "url": "api.bidir.com"
 }
 

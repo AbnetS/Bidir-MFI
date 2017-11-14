@@ -1,547 +1,268 @@
-/** *
+'use strict';
+/**
  * Load Module Dependencies.
  */
-var debug      = require('debug')('api:MFI-controller');
-var async      = require('async');
-var moment     = require('moment');
-var _          = require('lodash');
-var multer     = require ('multer');
+const crypto  = require('crypto');
+const path    = require('path');
+const url     = require('url');
 
-var multiparty      = require ('multiparty');
+const debug      = require('debug')('api:mfi-controller');
+const moment     = require('moment');
+const jsonStream = require('streaming-json-stringify');
+const _          = require('lodash');
+const co         = require('co');
+const del        = require('del');
+const validator  = require('validator');
 
-var MFIDal          = require ('../dal/MFI');
-var branchDal       = require ('../dal/branch');
-var config          = require('../config');
-var CustomError     = require('../lib/custom-error');
-var enums           = require('../lib/enums');
+const config             = require('../config');
+const CustomError        = require('../lib/custom-error');
+
+const TokenDal           = require('../dal/token');
+const MFIDal          = require('../dal/MFI');
+const LogDal             = require('../dal/log');
 
 
-exports.validateMFIId = function validateMFIId(req, res, next, id) {
-  //Validate the id is mongoid or not
-  req.checkParams('id', 'Invalid Id parameter').isMongoId(id);
+/**
+ * Create a mfi.
+ *
+ * @desc create a mfi using basic Authentication or Social Media
+ *
+ * @param {Function} next Middleware dispatcher
+ *
+ */
+exports.create = function* createMfi(next) {
+  debug('create mfi');
 
-  var validationErrors = req.validationErrors();
+  let body = this.request.body;
+  let bodyKeys = Object.keys(body);
+  let isMultipart = (bodyKeys.indexOf('fields') !== -1) && (bodyKeys.indexOf('files') !== -1);
 
-  if (validationErrors) {
-    return next(new CustomError({
-        status:400,                
-        specific_errors:validationErrors                
-    }));   
+  // If content is multipart reduce fields and files path
+  if(isMultipart) {
+    let _clone = {};
+
+    for(let key of bodyKeys) {
+      let props = body[key];
+      let propsKeys = Object.keys(props);
+
+      for(let prop of propsKeys) {
+        _clone[prop] = props[prop];
+      }
+    }
+
+    body = _clone;
 
   }
-  next(null);
-}
 
-exports.testMulti = function testMulti(req,res,next){
-  form = new multiparty.Form();
-  form.parse(req, function (err, fields, files){
-       console.log(fields, files)
-      })
-      form.on('error', function(err) {
-        console.log('Error parsing form: ' + err.stack);
-      });
+  let errors = [];
 
-      form.on('part', function (part){
-        if (part.filename){
-          
-          console.log('file:'+part.name)
-          part.resume();
-        }
-        else
-        console.log(part.name)
-      })
-      
+  if(!body.name) errors.push('MFI Name is Empty');
+  if(!body.logo) errors.push('MFI Logo is Empty');
+  if(!body.location) errors.push('MFI Location is Empty');
 
-      form.parse(req)
-}
-function validateLogoFileType(req, res, next, cb){
-        var storage = multer.diskStorage({
-            destination: config.STATIC_FILES + config.MFI_LOGO_PATH,
+  if(errors.length) {
+    return this.throw(new CustomError({
+      type: 'MFI_CREATION_ERROR',
+      message: JSON.stringify(errors)
+    }));
+  }
 
-            //to override existing logo if any, use a specific file name
-            filename: function (req, file, innerCb){            
-              innerCb(null, 'logo.'+ file.originalname.split('.')[1])
-          }
-        })
-        var upload = multer({
-          storage: storage,  
-          limits: {fileSize: config.MEDIA.FILE_SIZE},
-          inMemory: true,      
-          fileFilter: function (req, file, innerCb){                 
-          //if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-            if (file){
-              if (!(file.mimetype.split('/')[0] === 'image')){         
-                 return next(new CustomError({
-                  status: 400,
-                  specific_errors:[enums.APPL_ERROR_CODES.INVALID_LOGO_FILE]
-                })
-              )} 
-            }                 
-            
-            innerCb(null, true);
-          }
-        }).single('logo');
-        cb(null, upload, req, res, next)
-}
-
-function uploadLogo(upload, req, res, next, cb){
-        upload(req, res, function (err){
-          if (err){
-            if (err.message === "Unexpected field")          
-              return next(new CustomError({
-                status:400,                
-                specific_errors:[enums.APPL_ERROR_CODES.INVALID_LOGO_FIELD]                
-              }));
-            else if (err.message === "File too large")
-              return next(new CustomError({
-                status:400,                
-                specific_errors:[enums.APPL_ERROR_CODES.TOO_BIG_LOGO_FILE]                
-              }));
-            else
-              return next(new CustomError({
-                status:500,
-                specific_errors:[{code: 500, message: err.message}]
-              }));
-          }
-          if (!req.file){
-              return next(new CustomError({
-                status:400,                            
-                specific_errors: [enums.APPL_ERROR_CODES.NON_EXISTENT_LOGO]}))
-                
-          }         
-          cb(null,req, next)
-      })
-}
-function validateFieldData(req, next, cb){      
-        req.checkBody ('name')
-            .notEmpty().withMessage ('The name of the MFI can not be empty')
-        req.checkBody ('location')
-            .notEmpty().withMessage('The location of the MFI can not be empty')
-        if (req.body.email){
-          req.checkBody('email')
-            .isEmail().withMessage('Email is invalid')
-        }
-        
-        var validationErrors = req.validationErrors();
-         if (validationErrors){            
-            return next(new CustomError({
-              status: 400,                             
-              specific_errors: validationErrors
-            }));            
-          }
-          else{
-            cb(null)
-          }
-}
-/**
- * Create a MFIDal.
- *
- * @desc create a MFI and add them to the database
- *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
- * @param {Function} next Middleware dispatcher
- */
-exports.create = function createMFI(req, res, next) {
-  debug('create MFI');
-
-  //workflow to create an MFI Organization
-  //1. Check if an MFI exists (There should be only one record of the MFI)
-  //2. Validate the logo file Type
-  //3. Upload the logo
-  //3. Create the MFI
-  //4. If logo is provided, update the MFI document with the logo path.
-  //5. Create a default head office branch
-  //6. Respond.
-  
-
-  async.waterfall([    
-    function checkMFIExistence(cb){ 
-      var query = {};      
-      //better to check the count, instead of looking for a specific MFI 
-      //as there could be only one MFI
-      MFIDal.getCount(query, function (err, count){
-        if (err){
-          return next(new CustomError({
-            status: 500,
-            specific_errors:[{code: 500, message: err.message}]
-          }));
-        }
-
-        if (count > 0){          
-          return next(CustomError({
-            status:422,            
-            specific_errors: [enums.APPL_ERROR_CODES.MFI_EXIST_ERROR]            
-          }))
-        }
-        else
-          cb(null, req, res, next);
-      })      
-    }, validateLogoFileType        
-     , uploadLogo
-     , validateFieldData
-     , function createMFI(cb){
-        var MFIData = req.body;             
-        MFIData.logo = req.file.path;
-
-        MFIDal.create(MFIData, function (err, mfi){
-          if (err){
-            return next(new CustomError({
-              status: 500,  
-              specific_errors:[{code: 500, message: err.message}]        
-            }));
-          }
-          else
-            cb (null, mfi);
-        })
-    }, function createHeadOfficeBranch(mfi, cb){
-      var branchData = {};
-      branchData.MFI = mfi._id;
-      branchData.name ='Head Office';
-      branchData.location = mfi.location;
-      branchData.branch_type = 'Head Office';
-      if (mfi.email)
-        branchData.email = mfi.email;
-      else if (mfi.phone)
-        branchData.phone = mfi.phone;    
-
-      branchDal.create(branchData, function (err, headOfficeBranch){
-        if (err){          
-          return next (new CustomError ({
-            status: 500,
-            specific_errors:[{code: 500, message: err.message}]           
-          }))
-        }
-        else
-          cb (null, mfi, headOfficeBranch);
-      })      
-    }, function addHeadOfficeBranchToMFI(mfi, headOfficeBranch, cb){
-      var updates = {$push:{branches: headOfficeBranch._id}};
-
-      MFIDal.update({_id: mfi._id}, updates, function (err, mfi){
-        if (err){
-          return next (new CustomError ({
-            status: 500,
-            specific_errors:[{code: 500, message: err.message}]            
-          }))
-        }
-        else
-          cb (null, mfi)
-      })
-    }], function completed (err, mfi){
-        if (err){
-          return next(new CustomError({                            
-              status: 500,  
-              specific_errors:[{code: 500, message: err.message}]
-            }));
-        }
-
-        res.status = 201;
-        res.json(mfi);
-    })
-} 
-  
-/**
- * Get a collection of MFIs
- *
- * @desc Fetch a collection of MFIs
- *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
- * @param {Function} next Middleware dispatcher
- */
-exports.fetchAll = function fetchAllMFIs(req, res, next) {
-  debug('get a collection of MFIs');
-
-  var query = {};
-  var opts = {};
-
-  MFIDal.getCollection(query, /*opts,*/ function cb(err, MFIs) {
-    if(err) {
-      return next(CustomError({
-        status: 500,
-        specific_errors:[{code: 500, message: err.message}]
-      }));
-    }
-   
-    res.json(MFIs);    
-  });
-};
-
-/**
- * Get a collection of MFIs with pagination
- *
- * @desc Fetch a collection of MFIs
- *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
- * @param {Function} next Middleware dispatcher
- */
-exports.fetchAllByPagination = function fetchAllMFIs(req, res, next) {
-  debug('get a collection of MFIs');
-
-  var page   = req.query.page || 1;
-  var limit  = req.query.per_page || 10;
-
-  var opts = {
-    page: page,
-    limit: limit,
-    sort: { }
-  };
-  var query = {};
-  
-
-  MFIDal.getCollectionByPagination(query, opts, function cb(err, MFIs) {
-    if(err) {
-      return next(CustomError({
-        status: 500,
-        specific_errors:[{code: 500, message: err.message}]
-      }));
+  //  Save Logos
+  try {
+    if(body.logo) {
+      let filename  = body.name.trim().toUpperCase().split(/\s+/).join('_');
+      let id        = crypto.randomBytes(6).toString('hex');
+      let extname   = path.extname(body.logo);
+      let assetName = `${filename}_${id}${extname}`;
     }
 
-    res.json(MFIs);
-  });
+  } catch(ex) {
+    this.throw(new CustomError({
+      type: 'MFI_CREATION_ERROR',
+      message: ex.message
+    }));
+  }
+
+  try {
+
+    let mfi = yield MFIDal.get({ name: body.name });
+    if(mfi) {
+      throw new Error('MFI with that name already exists!!');
+    }
+
+    // Create Mfi Type
+    mfi = yield MFIDal.create(body);
+
+    let defaultBranch = yield BranchDal.create({
+      MFI: mfi._id,
+      name: 'Head Office',
+      location: body.location,
+      phone: body.phone,
+      email: body.email,
+      branch_type: 'Head Office'
+    });
+
+    mfi = yield MFIDal.update({ _id: mfi },{
+      branches: [defaultBranch._id]
+    });
+
+    this.body = mfi;
+
+  } catch(ex) {
+    this.throw(new CustomError({
+      type: 'MFI_CREATION_ERROR',
+      message: ex.message
+    }));
+  }
+
 };
 
 
 /**
- * Get a single MFI.
+ * Get a single mfi.
  *
- * @desc Fetch a MFI with the given id from the database.
+ * @desc Fetch a mfi with the given id from the database.
  *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
  * @param {Function} next Middleware dispatcher
  */
-exports.fetchOne = function fetchOneMFI(req, res, next) {
-  debug('fetch MFI:' + req.params.id);
+exports.fetchOne = function* fetchOneMfi(next) {
+  debug(`fetch mfi: ${this.params.id}`);
 
-  var query = {
-    _id: req.params.id
+  let query = {
+    _id: this.params.id
   };
 
-  MFIDal.get(query, function cb(err, mfi) {
-    if(err) {      
-      return next(CustomError({        
-        status: 500,
-        specific_errors:[{code: 500, message: err.message}]
-      }));
-    }
+  try {
+    let mfi = yield MFIDal.get(query);
 
-    if (!mfi._id){
-				return next (new CustomError({
-        			status: 400,
-        			specific_errors: [enums.APPL_ERROR_CODES.MFI_DOES_NOT_EXIST]	
-      			}));
-		}
+    yield LogDal.track({
+      event: 'view_mfi',
+      mfi: this.state._user._id ,
+      message: `View mfi - ${mfi.phone}`
+    });
 
-    res.json(mfi);
-  });
+    this.body = mfi;
+
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'MFI_RETRIEVAL_ERROR',
+      message: ex.message
+    }));
+  }
+
 };
 
 /**
- * Update a single MFI.
+ * Update Mfi Status
  *
- * @desc Fetch a MFI with the given id from the database
+ * @desc Fetch a mfi with the given ID and update their respective status.
+ *
+ * @param {Function} next Middleware dispatcher
+ */
+exports.updateStatus = function* updateMfi(next) {
+  debug(`updating status mfi: ${this.params.id}`);
+
+  this.checkBody('is_active')
+      .notEmpty('is_active should not be empty');
+
+  let query = {
+    _id: this.params.id
+  };
+  let body = this.request.body;
+
+  try {
+    let mfi = yield MFIDal.update(query, body);
+
+    yield LogDal.track({
+      event: 'mfi_status_update',
+      mfi: this.state._user._id ,
+      message: `Update Status for ${mfi.phone}`,
+      diff: body
+    });
+
+    this.body = mfi;
+
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'MFI_STATUS_UPDATE_ERROR',
+      message: ex.message
+    }));
+
+  }
+
+};
+
+/**
+ * Update a single mfi.
+ *
+ * @desc Fetch a mfi with the given id from the database
  *       and update their data
  *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
  * @param {Function} next Middleware dispatcher
  */
-exports.update = function updateMFI(req, res, next) {
-  debug('updating MFI:'+ req.params.id);
+exports.update = function* updateMfi(next) {
+  debug(`updating mfi: ${this.params.id}`);
 
-  var query = {
-    _id: req.params.id
+  let query = {
+    _id: this.params.id
   };
-  var body = req.body;  
+  let body = this.request.body;
 
-  async.waterfall([
-    function validateLogoFileType(cb){
-        var storage = multer.diskStorage({
-            destination: config.STATIC_FILES + config.MFI_LOGO_PATH,
+  try {
+    let mfi = yield MFIDal.update(query, body);
 
-            //to override existing logo if any, use a specific file name
-            filename: function (req, file, innerCb){            
-              innerCb(null, 'logo.'+ file.originalname.split('.')[1])
-          }
-        })
-        var upload = multer({
-          storage: storage,  
-          limits: {fileSize: config.MEDIA.FILE_SIZE},
-          inMemory: true,      
-          fileFilter: function (req, file, innerCb){                 
-          //if (!file.originalname.match(/\.(jpg|jpeg|png)$/)) {
-            if (file){
-              if (!(file.mimetype.split('/')[0] === 'image')){         
-                 return next(new CustomError({
-                  status: 400,
-                  specific_errors:[enums.APPL_ERROR_CODES.INVALID_LOGO_FILE]
-                })
-              )} 
-            }                 
-            
-            innerCb(null, true);
-          }
-        }).single('logo');      
-        cb(null,upload)      
-  }, function uploadLogo(upload, cb){
-        upload(req, res, function (err){
-            if (err){
-              if (err.message === "Unexpected field")          
-                return next(new CustomError({
-                  status:400,                
-                  specific_errors:[enums.APPL_ERROR_CODES.INVALID_LOGO_FIELD]                
-                }));
-              else if (err.message === "File too large")
-                return next(new CustomError({
-                  status:400,                
-                  specific_errors:[enums.APPL_ERROR_CODES.TOO_BIG_LOGO_FILE]                
-                }));
-              else
-                return next(new CustomError({
-                  status:500,
-                  specific_errors:[{code: 500, message: err.message}]
-                }));
-            }
-
-            if (req.body.logo && !req.file ){
-              return next(new CustomError({
-                status:400,                            
-                specific_errors: [enums.APPL_ERROR_CODES.NON_EXISTENT_LOGO]}))
-                
-          }  
-            
-            cb(null) 
-          })                       
-        
-    }, function validateFieldData(cb){     
-        if (req.body.email){
-          req.checkBody('email')
-            .isEmail().withMessage('Email is invalid')
-        }
-        
-        var validationErrors = req.validationErrors();
-         if (validationErrors){            
-            return next(new CustomError({
-              status: 400,                             
-              specific_errors: validationErrors
-            }));            
-          }
-          else{
-            cb(null)
-          }
-}, function updateMFI(cb){
-      var updates = req.body;
-      if(req.file)             
-        updates.logo = req.file.path;
-
-      MFIDal.update(query, updates, function (err, mfi) {
-        if(err) {  
-          return next(CustomError({
-        			status: 500,					
-        			specific_errors:[{code: 500, message: err.message}]
-				  }));
-        }
-
-        if (!mfi._id){
-				  return next (new CustomError({
-        			status: 400,
-        			specific_errors: [enums.APPL_ERROR_CODES.MFI_DOES_NOT_EXIST]	
-      		}));
-		    }
-        else 
-          cb(null, mfi);
-
-      
-    })
-  }],function completed (err, mfi){
-      if (err){
-        return next(new CustomError({                            
-            status: 500,  
-            specific_errors:[{code: 500, message: err.message}]
-          }));
-      }
-
-      res.status = 200;
-      res.json(mfi);
-    })
-
-  
-
-  };
-
-
-
-/**
- * Delete/Archive a single MFI.
- *
- * @desc Fetch a MFI with the given id from the database
- *       and delete their data
- *
- * @param {Object} req HTTP Request Object
- * @param {Object} res HTTP Response Object
- * @param {Function} next Middleware dispatcher
- */
-exports.delete = function deleteMFI(req, res, next) {
-  //Delete MFI Workflow:
-  //1. Delete All branches of the MFI 
-  //2. Delete the MFI itself.
-  //3. Respond
-
-  debug('deleting MFI:' + req.params.id);
-
-  var query = {
-    _id: req.params.id
-  };
-
-  async.waterfall([
-    function DeleteAllBranches(cb){
-      branchDal.deleteAll(function (err){
-        if (err){
-          return next(CustomError({
-            status: 500,
-            specific_errors:[{code: 500, message: err.message}]
-          }));
-        }
-
-        cb (null)
-      })
-    }, function deleteMFI(cb){
-      MFIDal.delete(query, function cb(err, mfi) {
-      if(err) {
-        return next(CustomError({
-          status: 500,
-          specific_errors:[{code: 500, message: err.message}]
-        }));
-      }
-
-      if (!mfi._id){
-          return next (new CustomError({
-                status: 400,
-                specific_errors: [enums.APPL_ERROR_CODES.MFI_DOES_NOT_EXIST]	
-              }));
-      }
-
-      res.json(mfi);
-
+    yield LogDal.track({
+      event: 'mfi_update',
+      mfi: this.state._user._id ,
+      message: `Update Info for ${mfi.phone}`,
+      diff: body
     });
-  }], function completed (err, mfi){
-      if (err){
-        return next(new CustomError({                            
-            status: 500,  
-            specific_errors:[{code: 500, message: err.message}]
-          }));
-      }
 
-      res.status = 200;
-      res.json(mfi);
-    })  
+    this.body = mfi;
+
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'UPDATE_MFI_ERROR',
+      message: ex.message
+    }));
+
+  }
 
 };
 
+/**
+ * Get a collection of mfis by Pagination
+ *
+ * @desc Fetch a collection of mfis
+ *
+ * @param {Function} next Middleware dispatcher
+ */
+exports.fetchAllByPagination = function* fetchAllMfis(next) {
+  debug('get a collection of mfis by pagination');
 
+  // retrieve pagination query params
+  let page   = this.query.page || 1;
+  let limit  = this.query.per_page || 10;
+  let query = {};
 
+  let sortType = this.query.sort_by;
+  let sort = {};
+  sortType ? (sort[sortType] = 1) : null;
 
+  let opts = {
+    page: +page,
+    limit: +limit,
+    sort: sort
+  };
 
+  try {
+    let mfis = yield MFIDal.getCollectionByPagination(query, opts);
+
+    this.body = mfis;
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'FETCH_PAGINATED_MFIS_COLLECTION_ERROR',
+      message: ex.message
+    }));
+  }
+};
