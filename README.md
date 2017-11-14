@@ -2,11 +2,11 @@
 
 Responsibilities:
 
-- Client Registration
-- Client Screening
+- MFI Management
+- Branch Management
 
 ### Internals
-Port `8040`
+Port `8000`
 
 ## License.
 
