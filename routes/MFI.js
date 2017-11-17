@@ -66,7 +66,7 @@ var router  = Router();
  *  }
  *
  */
-router.post('/create', acl(['admin']), mfiController.create);
+router.post('/create', acl(['*']), mfiController.create);
 
 
 /**

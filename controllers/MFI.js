@@ -16,10 +16,12 @@ const validator  = require('validator');
 
 const config             = require('../config');
 const CustomError        = require('../lib/custom-error');
+const googleBuckets      = require('../lib/google-buckets');
 
 const TokenDal           = require('../dal/token');
 const MFIDal          = require('../dal/MFI');
 const LogDal             = require('../dal/log');
+const BranchDal       = require('../dal/branch');
 
 
 /**
@@ -67,27 +69,22 @@ exports.create = function* createMfi(next) {
     }));
   }
 
-  //  Save Logos
-  try {
-    if(body.logo) {
-      let filename  = body.name.trim().toUpperCase().split(/\s+/).join('_');
-      let id        = crypto.randomBytes(6).toString('hex');
-      let extname   = path.extname(body.logo);
-      let assetName = `${filename}_${id}${extname}`;
-    }
-
-  } catch(ex) {
-    this.throw(new CustomError({
-      type: 'MFI_CREATION_ERROR',
-      message: ex.message
-    }));
-  }
-
   try {
 
     let mfi = yield MFIDal.get({ name: body.name });
     if(mfi) {
       throw new Error('MFI with that name already exists!!');
+    }
+
+    if(body.logo) {
+      let filename  = body.name.trim().toUpperCase().split(/\s+/).join('_');
+      let id        = crypto.randomBytes(6).toString('hex');
+      let extname   = path.extname(body.logo.name);
+      let assetName = `${filename}_${id}${extname}`;
+
+      let url       = yield googleBuckets(body.logo.path, assetName);
+
+      body.logo = url;
     }
 
     // Create Mfi Type

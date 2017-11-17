@@ -1,167 +1,180 @@
-////////   MFI DATA ACCESS LAYER   /////////////////
+'use strict';
+// Access Layer for MFI Data.
 
-//Load Module Dependencies
-var mongoose = require ('mongoose');
-var debug = require ('debug') ('Bidir-api-mfi-dal')
-var moment = require ('moment');
+/**
+ * Load Module Dependencies.
+ */
+const debug   = require('debug')('api:dal-mfi');
+const moment  = require('moment');
+const _       = require('lodash');
+const co      = require('co');
 
-var mfiModel 	= require ('../models/MFI');
-var enums		= require ('../lib/enums');
-var CustomError     = require('../lib/custom-error');
+const MFI    = require('../models/MFI');
+const mongoUpdate   = require('../lib/mongo-update');
 
+var returnFields = MFI.attributes;
+var population = [];
 
-var returnFields = mfiModel.whitelist;
-var population	 = [];
+/**
+ * create a new mfi.
+ *
+ * @desc  creates a new mfi and saves them
+ *        in the database
+ *
+ * @param {Object}  mfiData  Data for the mfi to create
+ *
+ * @return {Promise}
+ */
+exports.create = function create(mfiData) {
+  debug('creating a new mfi');
 
-//A method to create a mfi document in Mfis collection of the Bidir DB
-//cb is supposed to have two arguments: err, savedMfi
-exports.create = function createMfi (mfiData, cb){
-	debug ('Creating a mfi');
+  return co(function* () {
 
-	//Step 1 - create the mfi instance/document/ that is to be saved to the database
-	var mfi = new mfiModel (mfiData);
+    let unsavedMFI = new MFI(mfiData);
+    let newMFI = yield unsavedMFI.save();
+    let mfi = yield exports.get({ _id: newMFI._id });
 
-	//Step 2 - Call the save method of the mongoose model to add the instance to the 'Mfis' collection
-	mfi.save (function afterSave (err, savedMfi){
-		if (err){
-			return cb (err);
-		};
+    return mfi;
 
-		return cb (null, savedMfi);
-
-	});
-};
-
-//A method to get a single mfi based on query
-exports.get = function getMfi (query, cb){
-	debug ('Getting a mfi');
-
-	mfiModel
-		.findOne(query, returnFields)
-		.populate (population)
-		.select (returnFields)	
-		.exec (function afterSearch (err, searchedMfi){
-				if (err){
-					return cb (err);
-				}				
-
-				cb (null, searchedMfi  || {});
-			});
-}
-
-exports.getCollection = function getMfis (query, cb){
-	debug ('getting mfis');
-
-	mfiModel
-		.find(query)
-		.populate (population)
-		.select (returnFields)		
-		.exec (function afterSearch (err, searchedMfis){
-				if (err){
-					return cb (err);
-				}
-
-				cb (null, searchedMfis  || {});
-			});
-};
-
-exports.getCollectionByPagination = function getCollection(query, qs, cb) {
-  debug('fetching a collection of MFIs');
-
-  var opts = {
-    columns:  returnFields,
-    sortBy:   qs.sort || {},
-    populate: population,
-    page:     qs.page,
-    limit:    Number(qs.limit)
-  };
-console.log(opts)
-
-
-
-  mfiModel.paginate(query, opts, function (err, docs, page, count) {
-    if(err) {
-      return cb(err);
-    }
-
-
-    var data = {
-      total_pages: page,
-      total_docs_count: count,
-      docs: docs
-    };
-
-    cb(null, data);
 
   });
 
 };
 
+/**
+ * delete a mfi
+ *
+ * @desc  delete data of the mfi with the given
+ *        id
+ *
+ * @param {Object}  query   Query Object
+ *
+ * @return {Promise}
+ */
+exports.delete = function deleteMFI(query) {
+  debug('deleting mfi: ', query);
 
-exports.update = function updateMfi (query, update, cb){
-	debug ('Updating Mfi: ', query);
+  return co(function* () {
+    let mfi = yield exports.get(query);
+    let _empty = {};
 
-	mfiModel
-		.findOneAndUpdate (query, update, {new:true})
-		.select (returnFields)
-		.exec (function updateMfi (err,mfi){
-			if (err){
-				return cb (err)
-			}			
+    if(!mfi) {
+      return _empty;
+    } else {
+      yield mfi.remove();
 
-			cb (null, mfi || {});
-		});
-}
+      return mfi;
+    }
 
-exports.delete = function deleteMfi (query, cb){
- 	debug ('Deleting Mfi: ', query);
-
-	 mfiModel
-        .findOne(query)
-        .select (returnFields)
-        .exec(function afterSearch (err, searchedMfi){
-            if (err){
-              return cb (err);				
-            }
-            if (!searchedMfi){
-                return cb (null, {});
-            }
-            else{
-                searchedMfi.remove(function afterRemove(err){
-                    if (err){
-                        return cb (err);
-                    }
-                    return cb(null,searchedMfi);
-                }) 
-            }
-			
-			
-	 });
+  });
 };
 
+/**
+ * update a mfi
+ *
+ * @desc  update data of the mfi with the given
+ *        id
+ *
+ * @param {Object} query Query object
+ * @param {Object} updates  Update data
+ *
+ * @return {Promise}
+ */
+exports.update = function update(query, updates) {
+  debug('updating mfi: ', query);
 
-exports.deleteAll = function deleteAllMfis (cb){
-	debug ('Deleting All Mfis: ');
+  let now = moment().toISOString();
+  let opts = {
+    'new': true,
+    select: returnFields
+  };
 
-	mfiModel.remove ({}, function afterRemove(err){
-		if (err){
-			return cb (err);
-		}		
-		return cb (null);
+  updates = mongoUpdate(updates);
 
-	})
-}
+  return MFI.findOneAndUpdate(query, updates, opts)
+      .populate(population)
+      .exec();
+};
 
-exports.getCount = function getMfisCount (query, cb){
-	debug ('counting and returning the total number of MFIs....');
+/**
+ * get a mfi.
+ *
+ * @desc get a mfi with the given id from db
+ *
+ * @param {Object} query Query Object
+ *
+ * @return {Promise}
+ */
+exports.get = function get(query, mfi) {
+  debug('getting mfi ', query);
 
-	mfiModel.count (query, function (err, count){
-		if (err){
-			return cb (err);
-		}
+  return MFI.findOne(query, returnFields)
+    .populate(population)
+    .exec();
 
-		cb (null, count);
+};
 
-	})
-} 
+/**
+ * get a collection of mfis
+ *
+ * @desc get a collection of mfis from db
+ *
+ * @param {Object} query Query Object
+ *
+ * @return {Promise}
+ */
+exports.getCollection = function getCollection(query, qs) {
+  debug('fetching a collection of mfis');
 
+  return new Promise((resolve, reject) => {
+    resolve(
+     MFI
+      .find(query, returnFields)
+      .populate(population)
+      .stream());
+  });
+
+
+};
+
+/**
+ * get a collection of mfis using pagination
+ *
+ * @desc get a collection of mfis from db
+ *
+ * @param {Object} query Query Object
+ *
+ * @return {Promise}
+ */
+exports.getCollectionByPagination = function getCollection(query, qs) {
+  debug('fetching a collection of mfis');
+
+  let opts = {
+    select:  returnFields,
+    sortBy:   qs.sort || {},
+    populate: population,
+    page:     qs.page,
+    limit:    qs.limit
+  };
+
+
+  return new Promise((resolve, reject) => {
+    MFI.paginate(query, opts, function (err, docs) {
+      if(err) {
+        return reject(err);
+      }
+
+      let data = {
+        total_pages: docs.pages,
+        total_docs_count: docs.total,
+        current_page: docs.page,
+        docs: docs.docs
+      };
+
+      return resolve(data);
+
+    });
+  });
+
+
+};
