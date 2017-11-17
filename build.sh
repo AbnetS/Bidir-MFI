@@ -5,7 +5,7 @@ IMAGE_TAG=bidir/$SERVICE_NAME
 EXPOSE_PORT=8000
 CONT_PORT=8000
 HOST_IP=10.142.0.2
-MONGODB_URL=mongodb://10.142.0.2:27017/db
+MONGODB_URL=mongodb://10.142.0.2:27017/bidir
 # Stop running container
 $DOCKER_PATH stop $SERVICE_NAME
 # Remove container
