@@ -235,6 +235,79 @@ router.put('/:id', acl(['*']), branchController.update);
  */
 router.put('/:id/status', acl(['*']), branchController.updateStatus);
 
+/**
+ * @api {get} /MFI/branches/search?QueryTerm=<QueryValue> Search branches 
+ * @apiVersion 1.0.0
+ * @apiName Search
+ * @apiGroup Branch
+ *
+ * @apiDescription Search Branches. 
+ *
+ * @apiSuccess {String} _id branch id
+ * @apiSuccess {Object} MFI Parent MFI Reference 
+ * @apiSuccess {String} name Branch Name
+ * @apiSuccess {String} location Branch Location
+ * @apiSuccess {String} opening_date Opening Date
+ * @apiSuccess {String} branch_type Branch Type
+ * @apiSuccess {String} email Branch Contact Email Address
+ * @apiSuccess {String} phone Branch Contact Phone Number
+ * @apiSuccess {String} status Branch Status, defaults to active
+ *
+ * @apiSuccessExample Response Example:
+ *   [{
+ *    	_id : "556e1174a8952c9521286a60"
+ *    	MFI: {
+ *      	_id : "556e1174a8952c9521286a60",
+ *      	...
+ *    	},
+ *    	name: "Branch",
+ *    	email: "branch@mfi.com",
+ *    	phone: "0987654321",
+ *    	location: "Bole, Addis Ababa, Ethiopia",
+ *    	opening_date: "2017-10-10T00:00.000Z",
+ *    	branch_type: "Local",
+ *    status: "active"
+ *    }]
+ */
+router.get('/search', acl(['*']), branchController.search);
+
+/**
+ * @api {delete} /MFI/branches/:id Delete branch
+ * @apiVersion 1.0.0
+ * @apiName Delete
+ * @apiGroup Branch 
+ *
+ * @apiDescription Delete a  branch with the given id
+ *
+ *
+ * @apiSuccess {String} _id branch id
+ * @apiSuccess {Object} MFI Parent MFI Reference 
+ * @apiSuccess {String} name Branch Name
+ * @apiSuccess {String} location Branch Location
+ * @apiSuccess {String} opening_date Opening Date
+ * @apiSuccess {String} branch_type Branch Type
+ * @apiSuccess {String} email Branch Contact Email Address
+ * @apiSuccess {String} phone Branch Contact Phone Number
+ * @apiSuccess {String} status Branch Status, defaults to active
+ *
+ * @apiSuccessExample Response Example:
+ *  {
+ *    _id : "556e1174a8952c9521286a60"
+ *    MFI: {
+ *      _id : "556e1174a8952c9521286a60",
+ *      ...
+ *    },
+ *    name: "Branch",
+ *    email: "branch@mfi.com",
+ *    phone: "0987654321",
+ *    location: "Bole, Addis Ababa, Ethiopia",
+ *    opening_date: "2017-10-10T00:00.000Z",
+ *    branch_type: "Local",
+ *    status: "active"
+ *  }
+ */
+router.delete('/:id', acl(['*']), branchController.remove);
+
 
 // Expose branch Router
 module.exports = router;

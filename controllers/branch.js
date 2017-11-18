@@ -20,6 +20,7 @@ const CustomError        = require('../lib/custom-error');
 const TokenDal           = require('../dal/token');
 const BranchDal          = require('../dal/branch');
 const LogDal             = require('../dal/log');
+const MFIDal             = require('../dal/MFI');
 
 
 /**
@@ -218,4 +219,82 @@ exports.fetchAllByPagination = function* fetchAllBranchs(next) {
       message: ex.message
     }));
   }
+};
+
+/**
+ * Search  branches 
+ *
+ * @desc Fetch a collection searched branches
+ *
+ * @param {Function} next Middleware dispatcher
+ */
+exports.search = function* searchBranches(next) {
+  debug('search branches');
+
+  try {
+    let query = this.request.query;
+
+    if(!Object.keys(query).length) {
+      throw new Error('Search Query is missing');
+    }
+
+    let branches = yield BranchDal.getCollection(query);
+
+    this.body = branches;
+
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'BRANCH_SEARCH_ERROR',
+      message: ex.message
+    }));
+  }
+};
+
+/**
+ * Delete a single branch.
+ *
+ * @desc Fetch a branch with the given id from the database
+ *       and delete their data
+ *
+ * @param {Function} next Middleware dispatcher
+ */
+exports.remove = function* removeBranch(next) {
+  debug(`remove branch: ${this.params.id}`);
+
+  let query = {
+    _id: this.params.id
+  };
+
+  try {
+    // Delete Branch
+    let branch = yield BranchDal.delete(query);
+
+    // Remove From MFI collection
+    let mfi = yield MFIDal.get({ _id: branch.MFI._id });
+    let branches = [];
+
+    for(let _branch of mfi.branches) {
+      if(_branch._id !== branch._id) {
+        branches.push(_branch._id);
+      }
+    }
+
+    yield MFIDal.update({ _id: mfi._id }, { branches: branches });
+
+    yield LogDal.track({
+      event: 'branch_delete',
+      mfi: this.state._user._id ,
+      message: `Delete Info for ${branch.name}`
+    });
+
+    this.body = branch;
+
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'REMOVE_BRANCH_ERROR',
+      message: ex.message
+    }));
+
+  }
+
 };
