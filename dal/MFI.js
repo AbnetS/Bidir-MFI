@@ -126,15 +126,9 @@ exports.get = function get(query, mfi) {
 exports.getCollection = function getCollection(query, qs) {
   debug('fetching a collection of mfis');
 
-  return new Promise((resolve, reject) => {
-    resolve(
-     MFI
-      .find(query, returnFields)
-      .populate(population)
-      .stream());
-  });
-
-
+  return MFI.find(query, returnFields)
+    .populate(population)
+    .exec();
 };
 
 /**

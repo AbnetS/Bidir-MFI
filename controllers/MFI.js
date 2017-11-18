@@ -71,11 +71,12 @@ exports.create = function* createMfi(next) {
 
   try {
 
-    let mfi = yield MFIDal.get({ name: body.name });
+    // Prevent Creation of anymore MFIs just uno
+    let mfi = yield MFIDal.get({});
     if(mfi) {
-      throw new Error('MFI with that name already exists!!');
+      throw new Error('MFI Already Bootstrapped!!');
     }
-
+    
     if(body.logo) {
       let filename  = body.name.trim().toUpperCase().split(/\s+/).join('_');
       let id        = crypto.randomBytes(6).toString('hex');
@@ -262,4 +263,70 @@ exports.fetchAllByPagination = function* fetchAllMfis(next) {
       message: ex.message
     }));
   }
+};
+
+/**
+ * Get a collection of mfis 
+ *
+ * @desc Fetch a collection of mfis
+ *
+ * @param {Function} next Middleware dispatcher
+ */
+exports.fetchAll = function* fetchAllMfis(next) {
+  debug('get a collection of mfis');
+
+  try {
+    let query = {};
+    let mfis = yield MFIDal.getCollection(query);
+
+    this.body = mfis;
+
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'FETCH_MFIS_COLLECTION_ERROR',
+      message: ex.message
+    }));
+  }
+};
+
+/**
+ * Delete a single mfi.
+ *
+ * @desc Fetch a mfi with the given id from the database
+ *       and delete their data
+ *
+ * @param {Function} next Middleware dispatcher
+ */
+exports.remove = function* removeMfi(next) {
+  debug(`remove mfi: ${this.params.id}`);
+
+  let query = {
+    _id: this.params.id
+  };
+
+  try {
+    // Delete MFI
+    let mfi = yield MFIDal.delete(query);
+
+    // Remove Branches
+    for(let branch of mfi.branches) {
+      yield BranchDal.delete({ _id: branch._id });
+    }
+
+    yield LogDal.track({
+      event: 'mfi_delete',
+      mfi: this.state._user._id ,
+      message: `Delete Info for ${mfi.name}`
+    });
+
+    this.body = mfi;
+
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'REMOVE_MFI_ERROR',
+      message: ex.message
+    }));
+
+  }
+
 };
