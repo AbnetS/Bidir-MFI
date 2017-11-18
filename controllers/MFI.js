@@ -132,6 +132,9 @@ exports.fetchOne = function* fetchOneMfi(next) {
 
   try {
     let mfi = yield MFIDal.get(query);
+    if(!mfi._id) {
+      throw new Error('MFI does not Exist!!');
+    }
 
     yield LogDal.track({
       event: 'view_mfi',
@@ -170,6 +173,9 @@ exports.updateStatus = function* updateMfi(next) {
 
   try {
     let mfi = yield MFIDal.update(query, body);
+    if(!mfi._id) {
+      throw new Error('MFI does not Exist!!');
+    }
 
     yield LogDal.track({
       event: 'mfi_status_update',
@@ -208,6 +214,9 @@ exports.update = function* updateMfi(next) {
 
   try {
     let mfi = yield MFIDal.update(query, body);
+    if(!mfi._id) {
+      throw new Error('MFI does not Exist!!');
+    }
 
     yield LogDal.track({
       event: 'mfi_update',
@@ -307,6 +316,9 @@ exports.remove = function* removeMfi(next) {
   try {
     // Delete MFI
     let mfi = yield MFIDal.delete(query);
+    if(!mfi._id) {
+      throw new Error('MFI does not Exist!!');
+    }
 
     // Remove Branches
     for(let branch of mfi.branches) {

@@ -88,6 +88,9 @@ exports.fetchOne = function* fetchOneBranch(next) {
 
   try {
     let branch = yield BranchDal.get(query);
+    if(!branch._id) {
+      throw new Error('Branch does not Exist!!');
+    }
 
     yield LogDal.track({
       event: 'view_branch',
@@ -126,6 +129,9 @@ exports.updateStatus = function* updateBranch(next) {
 
   try {
     let branch = yield BranchDal.update(query, body);
+    if(!branch._id) {
+      throw new Error('Branch does not Exist!!');
+    }
 
     yield LogDal.track({
       event: 'branch_status_update',
@@ -164,6 +170,9 @@ exports.update = function* updateBranch(next) {
 
   try {
     let branch = yield BranchDal.update(query, body);
+    if(!branch._id) {
+      throw new Error('Branch does not Exist!!');
+    }
 
     yield LogDal.track({
       event: 'branch_update',
@@ -268,6 +277,9 @@ exports.remove = function* removeBranch(next) {
   try {
     // Delete Branch
     let branch = yield BranchDal.delete(query);
+    if(!branch._id) {
+      throw new Error('Branch does not Exist!!');
+    }
 
     // Remove From MFI collection
     let mfi = yield MFIDal.get({ _id: branch.MFI._id });
