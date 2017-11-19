@@ -60,6 +60,20 @@ exports.create = function* createBranch(next) {
     // Create Branch Type
     branch = yield BranchDal.create(body);
 
+    // Remove From MFI collection
+    let mfi = yield MFIDal.get({ _id: body.MFI });
+    if(mfi) {
+      let branches = [];
+
+      for(let _branch of mfi.branches) {
+        branches.push(_branch._id);
+      }
+
+      branches.push(branch._id);
+
+      yield MFIDal.update({ _id: mfi._id }, { branches: branches });
+    }
+
     this.body = branch;
 
   } catch(ex) {
