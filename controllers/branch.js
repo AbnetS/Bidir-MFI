@@ -283,15 +283,17 @@ exports.remove = function* removeBranch(next) {
 
     // Remove From MFI collection
     let mfi = yield MFIDal.get({ _id: branch.MFI._id });
-    let branches = [];
+    if(mfi) {
+      let branches = [];
 
-    for(let _branch of mfi.branches) {
-      if(_branch._id !== branch._id) {
-        branches.push(_branch._id);
+      for(let _branch of mfi.branches) {
+        if(_branch._id !== branch._id) {
+          branches.push(_branch._id);
+        }
       }
-    }
 
-    yield MFIDal.update({ _id: mfi._id }, { branches: branches });
+      yield MFIDal.update({ _id: mfi._id }, { branches: branches });
+    }
 
     yield LogDal.track({
       event: 'branch_delete',

@@ -10,10 +10,14 @@ const _       = require('lodash');
 const co      = require('co');
 
 const MFI    = require('../models/MFI');
+const Branch = require('../models/branch');
 const mongoUpdate   = require('../lib/mongo-update');
 
 var returnFields = MFI.attributes;
-var population = [];
+var population = [{
+  path: 'branches',
+  select: Branch.attributes
+}];
 
 /**
  * create a new mfi.
