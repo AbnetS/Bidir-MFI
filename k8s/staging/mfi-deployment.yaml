@@ -1,0 +1,45 @@
+kind: Deployment
+apiVersion: extensions/v1beta1
+metadata:
+  name: srvcz-api-mfi-staging
+spec:
+  selector:
+    matchLabels:
+      app: mfi-service
+      role: mfi
+  replicas: 1
+  template:
+    metadata:
+      name: srvcz-api-deployment
+      labels:
+        app: mfi-service
+        role: mfi
+        env: staging
+    spec:
+      containers:
+      - name: mfi
+        image: gcr.io/los-bidir/mfi-api-app:master.1
+        env:
+          - name: MONGODB_URL
+            valueFrom:
+              secretKeyRef:
+                name: mongo-secret
+                key: mongodb_url
+          - name: NODE_ENV
+            value: staging
+          - name: HOST_IP
+            valueFrom:
+              fieldRef:
+                fieldPath: status.podIP
+        resources:
+          limits:
+            memory: "500Mi"
+            cpu: "100m"
+        imagePullPolicy: Always
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+        ports:
+        - name: mfi
+          containerPort: 8000
