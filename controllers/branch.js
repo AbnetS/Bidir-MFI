@@ -36,8 +36,6 @@ exports.create = function* createBranch(next) {
 
   let body = this.request.body;
 
-  this.checkBody('MFI')
-      .notEmpty('MFI Reference ID is Empty');
   this.checkBody('name')
       .notEmpty('Branch Name is Empty!!');
   this.checkBody('location')
@@ -57,11 +55,12 @@ exports.create = function* createBranch(next) {
       throw new Error('Branch with that name for the MFI already exists!!');
     }
 
+    // Get MFI
+    let mfi = yield MFIDal.get({ });
+
     // Create Branch Type
     branch = yield BranchDal.create(body);
-
-    // Remove From MFI collection
-    let mfi = yield MFIDal.get({ _id: body.MFI });
+ 
     if(mfi) {
       let branches = [];
 

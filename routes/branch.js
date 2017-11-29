@@ -19,7 +19,6 @@ var router  = Router();
  *
  * @apiDescription Create new branch
  *
- * @apiParam {String} MFI Parent MFI Reference ID
  * @apiParam {String} name Branch Name
  * @apiParam {String} location Branch Location
  * @apiParam {String} opening_date Opening Date
@@ -30,7 +29,6 @@ var router  = Router();
  *
  * @apiParamExample Request Example:
  *  {
- *    MFI: "556e1174a8952c9521286a60",
  *    name: "Branch",
  *    email: "branch@mfi.com",
  *    phone: "0987654321",
