@@ -214,14 +214,14 @@ exports.update = function* updateMfi(next) {
 
   try {
     let mfi = yield MFIDal.update(query, body);
-    if(!mfi._id) {
-      throw new Error('MFI does not Exist!!');
+    if(!mfi || !mfi._id) {
+      throw new Error('MFI is Not Yet Created!');
     }
 
     yield LogDal.track({
       event: 'mfi_update',
       mfi: this.state._user._id ,
-      message: `Update Info for ${mfi.phone}`,
+      message: `Update Info for ${mfi.name}`,
       diff: body
     });
 
