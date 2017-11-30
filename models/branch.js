@@ -10,13 +10,12 @@ var paginator = require('mongoose-paginate');
 var Schema = mongoose.Schema;
 
 var BranchSchema = new Schema({
-    MFI:            { type: Schema.Types.ObjectId, ref:'MFI', required: true},
     name:           { type: String, required: true, unique: true },
     location:       { type: String, required: true },    
-    opening_date:   { type: Date },
-    branch_type:    { type: String },
-    email:          { type: String },
-    phone:          { type: String },
+    opening_date:   { type: Date, default: null },
+    branch_type:    { type: String, default: '' },
+    email:          { type: String, default: '' },
+    phone:          { type: String, default: '' },
     status:         {type: String, enums:['active', 'inactive'], default:'active'},
     date_created:   { type: Date },
     last_modified:  { type: Date }
@@ -49,7 +48,16 @@ BranchSchema.pre('save', function preSaveMiddleware(next) {
  * Filter Branch Attributes to expose
  */
 BranchSchema.statics.whitelist = {
-  __v: 0
+  _id: 1,
+  name: 1,
+  location: 1,
+  opening_date: 1,
+  branch_type: 1,
+  email: 1,
+  phone: 1,
+  status: 1,
+  date_created: 1,
+  last_modified: 1
 };
 
 

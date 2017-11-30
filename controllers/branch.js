@@ -56,7 +56,10 @@ exports.create = function* createBranch(next) {
     }
 
     // Get MFI
-    let mfi = yield MFIDal.get({ });
+    let mfi = yield MFIDal.get({});
+    if(!mfi) {
+      throw new Error('MFI is not yet created');
+    }
 
     // Create Branch Type
     branch = yield BranchDal.create(body);
