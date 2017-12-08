@@ -16,6 +16,7 @@ const validator  = require('validator');
 
 const config             = require('../config');
 const CustomError        = require('../lib/custom-error');
+const checkPermissions   = require('../lib/permissions');
 
 const TokenDal           = require('../dal/token');
 const BranchDal          = require('../dal/branch');
@@ -33,6 +34,14 @@ const MFIDal             = require('../dal/MFI');
  */
 exports.create = function* createBranch(next) {
   debug('create branch');
+
+  let isPermitted = yield checkPermissions.isPermitted(this.state._user, 'manage_branches_create');
+  if(!isPermitted) {
+    return this.throw(new CustomError({
+      type: 'BRANCH_CREATE_ERROR',
+      message: "You Don't have enough permissions to complete this action"
+    }));
+  }
 
   let body = this.request.body;
 
