@@ -254,7 +254,7 @@ exports.fetchAllByPagination = function* fetchAllMfis(next) {
 
   let sortType = this.query.sort_by;
   let sort = {};
-  sortType ? (sort[sortType] = 1) : null;
+  sortType ? (sort[sortType] = -1) : (sort.date_created = -1 );
 
   let opts = {
     page: +page,
@@ -268,7 +268,7 @@ exports.fetchAllByPagination = function* fetchAllMfis(next) {
     this.body = mfis;
   } catch(ex) {
     return this.throw(new CustomError({
-      type: 'FETCH_PAGINATED_MFIS_COLLECTION_ERROR',
+      type: 'FETCH_MFIS_COLLECTION_ERROR',
       message: ex.message
     }));
   }

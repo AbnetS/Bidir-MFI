@@ -23,6 +23,7 @@ const BranchDal          = require('../dal/branch');
 const LogDal             = require('../dal/log');
 const MFIDal             = require('../dal/MFI');
 
+let hasPermission = checkPermissions.isPermitted('BRANCH');
 
 /**
  * Create a branch.
@@ -35,7 +36,7 @@ const MFIDal             = require('../dal/MFI');
 exports.create = function* createBranch(next) {
   debug('create branch');
 
-  let isPermitted = yield checkPermissions.isPermitted(this.state._user, 'manage_branches_create');
+  let isPermitted = yield hasPermission(this.state._user, 'CREATE');
   if(!isPermitted) {
     return this.throw(new CustomError({
       type: 'BRANCH_CREATE_ERROR',
@@ -188,6 +189,14 @@ exports.updateStatus = function* updateBranch(next) {
 exports.update = function* updateBranch(next) {
   debug(`updating branch: ${this.params.id}`);
 
+  let isPermitted = yield hasPermission(this.state._user, 'UPDATE');
+  if(!isPermitted) {
+    return this.throw(new CustomError({
+      type: 'UPDATE_BRANCH_ERROR',
+      message: "You Don't have enough permissions to complete this action"
+    }));
+  }
+
   let query = {
     _id: this.params.id
   };
@@ -202,7 +211,7 @@ exports.update = function* updateBranch(next) {
     yield LogDal.track({
       event: 'branch_update',
       branch: this.state._user._id ,
-      message: `Update Info for ${branch.phone}`,
+      message: `Update Info for ${branch.name}`,
       diff: body
     });
 
@@ -219,14 +228,14 @@ exports.update = function* updateBranch(next) {
 };
 
 /**
- * Get a collection of branchs by Pagination
+ * Get a collection of branches by Pagination
  *
- * @desc Fetch a collection of branchs
+ * @desc Fetch a collection of branches
  *
  * @param {Function} next Middleware dispatcher
  */
 exports.fetchAllByPagination = function* fetchAllBranchs(next) {
-  debug('get a collection of branchs by pagination');
+  debug('get a collection of branches by pagination');
 
   // retrieve pagination query params
   let page   = this.query.page || 1;
@@ -235,7 +244,7 @@ exports.fetchAllByPagination = function* fetchAllBranchs(next) {
 
   let sortType = this.query.sort_by;
   let sort = {};
-  sortType ? (sort[sortType] = 1) : null;
+  sortType ? (sort[sortType] = -1) : (sort.date_created = -1 );
 
   let opts = {
     page: +page,
@@ -244,12 +253,12 @@ exports.fetchAllByPagination = function* fetchAllBranchs(next) {
   };
 
   try {
-    let branchs = yield BranchDal.getCollectionByPagination(query, opts);
+    let branches = yield BranchDal.getCollectionByPagination(query, opts);
 
-    this.body = branchs;
+    this.body = branches;
   } catch(ex) {
     return this.throw(new CustomError({
-      type: 'FETCH_PAGINATED_BRANCHS_COLLECTION_ERROR',
+      type: 'FETCH_BRANCHES_COLLECTION_ERROR',
       message: ex.message
     }));
   }
