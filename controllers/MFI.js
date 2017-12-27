@@ -207,16 +207,50 @@ exports.updateStatus = function* updateMfi(next) {
 exports.update = function* updateMfi(next) {
   debug(`updating mfi: ${this.params.id}`);
 
+  let body = this.request.body;
+  let bodyKeys = Object.keys(body);
+  let isMultipart = (bodyKeys.indexOf('fields') !== -1) && (bodyKeys.indexOf('files') !== -1);
+
+  // If content is multipart reduce fields and files path
+  if(isMultipart) {
+    let _clone = {};
+
+    for(let key of bodyKeys) {
+      let props = body[key];
+      let propsKeys = Object.keys(props);
+
+      for(let prop of propsKeys) {
+        _clone[prop] = props[prop];
+      }
+    }
+
+    body = _clone;
+
+  }
+
+
   let query = {
     _id: this.params.id
   };
-  let body = this.request.body;
 
   try {
-    let mfi = yield MFIDal.update(query, body);
+    let mfi = yield MFIDal.get(query);
     if(!mfi || !mfi._id) {
       throw new Error('MFI is Not Yet Created!');
     }
+
+    if(body.logo) {
+      let filename  = body.name.trim().toUpperCase().split(/\s+/).join('_');
+      let id        = crypto.randomBytes(6).toString('hex');
+      let extname   = path.extname(body.logo.name);
+      let assetName = `${filename}_${id}${extname}`;
+
+      let url       = yield googleBuckets(body.logo.path, assetName);
+
+      body.logo = url;
+    }
+
+    mfi = yield MFIDal.update(query, body);
 
     yield LogDal.track({
       event: 'mfi_update',
