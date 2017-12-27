@@ -240,7 +240,7 @@ exports.update = function* updateMfi(next) {
     }
 
     if(body.logo) {
-      let filename  = body.name.trim().toUpperCase().split(/\s+/).join('_');
+      let filename  = mfi.name.trim().toUpperCase().split(/\s+/).join('_');
       let id        = crypto.randomBytes(6).toString('hex');
       let extname   = path.extname(body.logo.name);
       let assetName = `${filename}_${id}${extname}`;
