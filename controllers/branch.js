@@ -108,6 +108,14 @@ exports.create = function* createBranch(next) {
 exports.fetchOne = function* fetchOneBranch(next) {
   debug(`fetch branch: ${this.params.id}`);
 
+  let isPermitted = yield hasPermission(this.state._user, 'VIEW');
+  if(!isPermitted) {
+    return this.throw(new CustomError({
+      type: 'BRANCH_VIEW_ERROR',
+      message: "You Don't have enough permissions to complete this action"
+    }));
+  }
+
   let query = {
     _id: this.params.id
   };
@@ -128,7 +136,7 @@ exports.fetchOne = function* fetchOneBranch(next) {
 
   } catch(ex) {
     return this.throw(new CustomError({
-      type: 'BRANCH_RETRIEVAL_ERROR',
+      type: 'BRANCH_VIEW_ERROR',
       message: ex.message
     }));
   }
@@ -144,6 +152,8 @@ exports.fetchOne = function* fetchOneBranch(next) {
  */
 exports.updateStatus = function* updateBranch(next) {
   debug(`updating status branch: ${this.params.id}`);
+
+  return this.body = { message: 'Use PUT /MFI/branches/:id' };
 
   this.checkBody('status')
       .notEmpty('Status should not be empty');
@@ -236,6 +246,14 @@ exports.update = function* updateBranch(next) {
  */
 exports.fetchAllByPagination = function* fetchAllBranchs(next) {
   debug('get a collection of branches by pagination');
+
+  let isPermitted = yield hasPermission(this.state._user, 'VIEW');
+  if(!isPermitted) {
+    return this.throw(new CustomError({
+      type: 'FETCH_BRANCHES_COLLECTION_ERROR',
+      message: "You Don't have enough permissions to complete this action"
+    }));
+  }
 
   // retrieve pagination query params
   let page   = this.query.page || 1;
