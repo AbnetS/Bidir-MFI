@@ -22,6 +22,7 @@ const TokenDal           = require('../dal/token');
 const BranchDal          = require('../dal/branch');
 const LogDal             = require('../dal/log');
 const MFIDal             = require('../dal/MFI');
+const AccountDal         = require('../dal/account');
 
 let hasPermission = checkPermissions.isPermitted('BRANCH');
 
