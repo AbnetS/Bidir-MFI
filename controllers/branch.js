@@ -45,10 +45,8 @@ exports.create = function* createBranch(next) {
       message: "You Don't have enough permissions to complete this action"
     }));*/
     let account = yield AccountDal.get({ user: this.state._user._id });
-    let role = yield RoleDal.get({ _id: account.role._id });
     return this.body = {
-      account: account,
-      role: role
+      account: account
     };
   }
 
