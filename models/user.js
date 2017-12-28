@@ -2,7 +2,7 @@
 
 /**
  * User Model Definition.
- * status: suspended, active, created
+ * status: suspended, active, archived
  */
 
 /**
@@ -22,10 +22,10 @@ var UserSchema = new Schema({
     username:       { type: String, unique: true },
     admin:          { type: Schema.Types.ObjectId,    ref: 'Admin' },
     account:        { type: Schema.Types.ObjectId,    ref: 'Account' },
-    realm:          { type: String, default: 'admin' },
+    realm:          { type: String, default: 'user' },
     role:           { type: String, default: 'general' },
     password:       { type: String },
-    last_login:     { type: Date },
+    last_login:     { type: Date   },
     status:         { type: String, default: 'active' },
     created_by:     { type: String },
     archived:       { type: Boolean, default: false },

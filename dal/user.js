@@ -9,15 +9,33 @@ const _       = require('lodash');
 const co      = require('co');
 
 const User        = require('../models/user');
-const Account      = require('../models/account');
-const Admin       = require('../models/admin');
+const Account       = require('../models/account');
+const Role          = require('../models/role');
+const Branch        = require('../models/branch');
+const Permission    = require('../models/permission');
+const Admin         = require('../models/admin');
 
 const mongoUpdate = require('../lib/mongo-update');
 
 var returnFields = User.attributes;
+
 var population = [{
   path: 'account',
-  select: Account.attributes
+  select: Account.attributes,
+  populate: [{
+    path: 'default_branch',
+    select: Branch.attributes
+  },{
+    path: 'role',
+    select: Role.attributes,
+    populate: {
+      path: 'permissions',
+      select: Permission.attributes
+    }
+  },{
+      path: 'access_branches',
+      select: Branch.attributes
+  }]
 },{
   path: 'admin',
   select: Admin.attributes
@@ -118,28 +136,13 @@ exports.update = function update(query, updates) {
 exports.get = function get(query, populate) {
   debug('getting user ', query);
 
-  populate = populate || false;
+  populate = true || false;
 
   return co(function*() {
     let user;
 
     if(populate) {
       user = yield User.findOne(query, returnFields).populate(population).exec();
-
-      if(user && user.player) {
-        let player = yield Player.populate(user.player, [{
-          path: 'device',
-          select: Device.attributes
-        },{
-          path: 'preferences',
-          select: Preference.attributes
-        },{
-          path: 'game',
-          select: Game.attributes
-        }]);
-
-        user.player = player;
-      }
     } else {
       user = yield User.findOne(query, returnFields).exec();
     }
@@ -187,7 +190,7 @@ exports.getCollectionByPagination = function getCollection(query, qs) {
 
   let opts = {
     select:  returnFields,
-    sort:   qs.sort || {},
+    sort:   qs.sort,
     populate: population,
     page:     qs.page,
     limit:    qs.limit

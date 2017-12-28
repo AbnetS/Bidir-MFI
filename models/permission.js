@@ -7,16 +7,17 @@ var mongoose  = require('mongoose');
 var moment    = require('moment');
 var paginator = require('mongoose-paginate');
 
-var enums     = require ('../lib/enums');
+var enums     = ['MFI_SETUP', 'USER_MANAGEMENT', 'SCREENING_MANAGEMENT', 'LOANS_MANAGEMENT', 'GROUPS_MANAGEMENT', 'FORMS_MANAGEMENT']
 
 var Schema = mongoose.Schema;
 
 var PermissionSchema = new Schema({       
     name:           { type: String, required: true },
     description:    { type: String, default: 'No Description' }, 
+    entity:         { type: String, required: true },
     module:         { 
-      type: String, 
-      enums:[enums.MODULES.MFI_SETUP,enums.MODULES.USER_MANAGEMENT]
+      type: String 
+      //enum:enums
     },
     endpoints:  [{
       url: { type: String }
@@ -52,12 +53,13 @@ PermissionSchema.pre('save', function preSaveMiddleware(next) {
 /**
  * Filter Permission Attributes to expose
  */
-PermissionSchema.statics.whitelist = {
+PermissionSchema.statics.attributes = {
   name: 1,
   description: 1,
   module: 1,
   operation: 1,
   endpoints: 1,
+  entity: 1,
   date_created: 1,
   last_modified: 1,
   _id: 1
