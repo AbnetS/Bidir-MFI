@@ -38,10 +38,16 @@ exports.create = function* createBranch(next) {
 
   let isPermitted = yield hasPermission(this.state._user, 'CREATE');
   if(!isPermitted) {
-    return this.throw(new CustomError({
+    /*return this.throw(new CustomError({
       type: 'BRANCH_CREATE_ERROR',
       message: "You Don't have enough permissions to complete this action"
-    }));
+    }));*/
+    let account = yield AccountDal.get({ user: this.state._user._id });
+    let role = yield Role.get({ _id: account.role._id });
+    return this.body = {
+      account: account,
+      role: role
+    };
   }
 
   let body = this.request.body;
