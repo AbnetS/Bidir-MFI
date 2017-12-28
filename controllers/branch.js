@@ -23,6 +23,7 @@ const BranchDal          = require('../dal/branch');
 const LogDal             = require('../dal/log');
 const MFIDal             = require('../dal/MFI');
 const AccountDal         = require('../dal/account');
+const RoleDal         = require('../dal/role');
 
 let hasPermission = checkPermissions.isPermitted('BRANCH');
 
@@ -44,7 +45,7 @@ exports.create = function* createBranch(next) {
       message: "You Don't have enough permissions to complete this action"
     }));*/
     let account = yield AccountDal.get({ user: this.state._user._id });
-    let role = yield Role.get({ _id: account.role._id });
+    let role = yield RoleDal.get({ _id: account.role._id });
     return this.body = {
       account: account,
       role: role
