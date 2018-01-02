@@ -105,6 +105,24 @@ router.post('/create', acl(['*']), mfiController.create);
 router.get('/all', acl(['*']), mfiController.fetchAll);
 
 /**
+ * @api {get} /MFI/logo Get mfis logo
+ * @apiVersion 1.0.0
+ * @apiName GetLogo
+ * @apiGroup MFI
+ *
+ * @apiDescription Get a MFI Logo.
+ *
+ * @apiSuccess {String} logo MFI logo
+ *
+ * @apiSuccessExample Response Example:
+ *     {
+ *        logo: "https://fb.cdn.ugusgu.us./MFI/285475474224.png"
+ *    }
+ */
+router.get('/logo', mfiController.getLogo);
+
+
+/**
  * @api {get} /MFI/:id Get MFI MFI
  * @apiVersion 1.0.0
  * @apiName Get

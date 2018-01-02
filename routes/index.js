@@ -14,6 +14,7 @@ var appRouter = new Router();
 
 const OPEN_ENDPOINTS = [
     /\/assets\/.*/,
+    '/MFI/logo',
     '/'
 ];
 

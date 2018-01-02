@@ -138,7 +138,7 @@ exports.fetchOne = function* fetchOneMfi(next) {
 
     yield LogDal.track({
       event: 'view_mfi',
-      mfi: this.state._user._id ,
+      user: this.state._user._id ,
       message: `View mfi - ${mfi.phone}`
     });
 
@@ -147,6 +147,39 @@ exports.fetchOne = function* fetchOneMfi(next) {
   } catch(ex) {
     return this.throw(new CustomError({
       type: 'MFI_RETRIEVAL_ERROR',
+      message: ex.message
+    }));
+  }
+
+};
+
+/**
+ * Get mfi Logo.
+ *
+ * @desc Return MFI Logo.
+ *
+ * @param {Function} next Middleware dispatcher
+ */
+exports.getLogo = function* getLogo(next) {
+  debug(`fetch mfi logo`);
+
+
+  try {
+    let mfi = yield MFIDal.get({});
+
+    yield LogDal.track({
+      event: 'view_mfi_logo',
+      user: null ,
+      message: `View mfi - ${mfi.phone}`
+    });
+
+    this.body = {
+      logo: mfi.logo
+    };
+
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'VIEW_MFI_LOGO_ERROR',
       message: ex.message
     }));
   }
@@ -179,7 +212,7 @@ exports.updateStatus = function* updateMfi(next) {
 
     yield LogDal.track({
       event: 'mfi_status_update',
-      mfi: this.state._user._id ,
+      user: this.state._user._id ,
       message: `Update Status for ${mfi.phone}`,
       diff: body
     });
@@ -254,7 +287,7 @@ exports.update = function* updateMfi(next) {
 
     yield LogDal.track({
       event: 'mfi_update',
-      mfi: this.state._user._id ,
+      user: this.state._user._id ,
       message: `Update Info for ${mfi.name}`,
       diff: body
     });
@@ -361,7 +394,7 @@ exports.remove = function* removeMfi(next) {
 
     yield LogDal.track({
       event: 'mfi_delete',
-      mfi: this.state._user._id ,
+      user: this.state._user._id ,
       message: `Delete Info for ${mfi.name}`
     });
 
