@@ -18,6 +18,8 @@ const config             = require('../config');
 const CustomError        = require('../lib/custom-error');
 const checkPermissions   = require('../lib/permissions');
 
+const Account            = require('../models/account');
+
 const TokenDal           = require('../dal/token');
 const BranchDal          = require('../dal/branch');
 const LogDal             = require('../dal/log');
@@ -252,7 +254,7 @@ exports.fetchAllByPagination = function* fetchAllBranchs(next) {
   let isPermitted = yield hasPermission(this.state._user, 'VIEW');
   if(!isPermitted) {
     return this.throw(new CustomError({
-      type: 'FETCH_BRANCHES_COLLECTION_ERROR',
+      type: 'VIEW_BRANCHES_COLLECTION_ERROR',
       message: "You Don't have enough permissions to complete this action"
     }));
   }
@@ -273,12 +275,27 @@ exports.fetchAllByPagination = function* fetchAllBranchs(next) {
   };
 
   try {
+
+    let user = this.state._user;
+    let account = yield Account.findOne({ user: user._id }).exec();
+
+    if(account) {
+      if(account.access_branches.length) {
+        query._id = { $in: account.access_branches };
+
+      } else if(account.default_branch) {
+        query._id = account.default_branch;
+
+      }
+    }
+
     let branches = yield BranchDal.getCollectionByPagination(query, opts);
 
     this.body = branches;
+
   } catch(ex) {
     return this.throw(new CustomError({
-      type: 'FETCH_BRANCHES_COLLECTION_ERROR',
+      type: 'VIEW_BRANCHES_COLLECTION_ERROR',
       message: ex.message
     }));
   }
