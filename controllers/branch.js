@@ -63,6 +63,8 @@ exports.create = function* createBranch(next) {
   }
 
   try {
+    let user = this.state._user;
+    let account = yield Account.findOne({ user: user._id }).exec();
 
     let branch = yield BranchDal.get({ name: body.name });
     if(branch) {
@@ -88,6 +90,14 @@ exports.create = function* createBranch(next) {
       branches.push(branch._id);
 
       yield MFIDal.update({ _id: mfi._id }, { branches: branches });
+    }
+
+    if(account) {
+      let branches = (account.toJSON()).access_branches.slice();
+
+      branches.push(branch._id);
+
+      yield AccountDal.update({ _id: account._id },{ access_branches: branches })
     }
 
     this.body = branch;
