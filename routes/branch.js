@@ -68,12 +68,12 @@ router.post('/create', acl(['*']), branchController.create);
 
 
 /**
- * @api {get} /MFI/branches/paginate?page=<RESULTS_PAGE>&per_page=<RESULTS_PER_PAGE> Get branchs collection
+ * @api {get} /MFI/branches/paginate?page=<RESULTS_PAGE>&per_page=<RESULTS_PER_PAGE> Get branches collection
  * @apiVersion 1.0.0
  * @apiName FetchPaginated
  * @apiGroup Branch
  *
- * @apiDescription Get a collection of branchs. The endpoint has pagination
+ * @apiDescription Get a collection of branches. The endpoint has pagination
  * out of the box. Use these params to query with pagination: `page=<RESULTS_PAGE`
  * and `per_page=<RESULTS_PER_PAGE>`.
  *
@@ -108,6 +108,49 @@ router.post('/create', acl(['*']), branchController.create);
  *  }
  */
 router.get('/paginate', acl(['*']), branchController.fetchAllByPagination);
+
+
+/**
+ * @api {get} /MFI/branches/search?page=<RESULTS_PAGE>&per_page=<RESULTS_PER_PAGE> Search branches
+ * @apiVersion 1.0.0
+ * @apiName Search
+ * @apiGroup Branch
+ *
+ * @apiDescription Get a collection of branches by search. The endpoint has pagination
+ * out of the box. Use these params to query with pagination: `page=<RESULTS_PAGE`
+ * and `per_page=<RESULTS_PER_PAGE>`.
+ *
+ * @apiSuccess {String} _id branch id
+ * @apiSuccess {Object} MFI Parent MFI Reference 
+ * @apiSuccess {String} name Branch Name
+ * @apiSuccess {String} location Branch Location
+ * @apiSuccess {String} opening_date Opening Date
+ * @apiSuccess {String} branch_type Branch Type
+ * @apiSuccess {String} email Branch Contact Email Address
+ * @apiSuccess {String} phone Branch Contact Phone Number
+ * @apiSuccess {String} status Branch Status, defaults to active
+ *
+ * @apiSuccessExample Response Example:
+ *  {
+ *    "total_pages": 1,
+ *    "total_docs_count": 0,
+ *    "docs": [{
+ *      _id : "556e1174a8952c9521286a60"
+ *      MFI: {
+ *        _id : "556e1174a8952c9521286a60",
+ *        ...
+ *      },
+ *      name: "Branch",
+ *      email: "branch@mfi.com",
+ *      phone: "0987654321",
+ *      location: "Bole, Addis Ababa, Ethiopia",
+ *      opening_date: "2017-10-10T00:00.000Z",
+ *      branch_type: "Local",
+ *    status: "active"
+ *    }]
+ *  }
+ */
+router.get('/search', acl(['*']), branchController.search);
 
 /**
  * @api {get} /MFI/branches/:id Get branch branch

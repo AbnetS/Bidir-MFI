@@ -290,12 +290,14 @@ exports.fetchAllByPagination = function* fetchAllBranchs(next) {
     let account = yield Account.findOne({ user: user._id }).exec();
 
     if(account) {
-      if(account.access_branches.length) {
-        query._id = { $in: account.access_branches };
+      if(!account.multi_branches) {
+        if(account.access_branches.length) {
+          query._id = { $in: account.access_branches };
 
-      } else if(account.default_branch) {
-        query._id = account.default_branch;
+        } else if(account.default_branch) {
+          query._id = account.default_branch;
 
+        }
       }
     }
 
@@ -392,4 +394,87 @@ exports.remove = function* removeBranch(next) {
 
   }
 
+};
+
+/**
+ * Search branches
+ *
+ * @desc Fetch a collection of branches
+ *
+ * @param {Function} next Middleware dispatcher
+ */
+exports.search = function* searchBranches(next) {
+  debug('search branches');
+
+  let isPermitted = yield hasPermission(this.state._user, 'VIEW');
+  if(!isPermitted) {
+      return this.throw(new CustomError({
+        type: 'SEARCH_BRANCHES_ERROR',
+        message: "You Don't have enough permissions to complete this action"
+      }));
+  }
+
+  // retrieve pagination query params
+  let page   = this.query.page || 1;
+  let limit  = this.query.per_page || 10;
+  let query = {};
+
+  let sortType = this.query.sort_by;
+  let sort = {};
+  sortType ? (sort[sortType] = -1) : (sort.date_created = -1 );
+
+  let opts = {
+    page: +page,
+    limit: +limit,
+    sort: sort
+  };
+
+  try {
+    let user = this.state._user;
+    let account = yield Account.findOne({ user: user._id }).exec();
+
+     if(account) {
+        if(!account.multi_branches) {
+          if(account.access_branches.length) {
+            query._id = { $in: account.access_branches };
+
+          } else if(account.default_branch) {
+            query._id = account.default_branch;
+
+          }
+        }
+      }
+
+    let searchTerm = this.query.search;
+    if(!searchTerm) {
+      throw new Error('Please Provide A Search Term');
+    }
+
+    searchTerm = { $regex: new RegExp(`${searchTerm}`), $options: 'i' };
+
+    query.$or = [{
+          name: searchTerm
+        },{
+          location: searchTerm
+        },{
+          branch_type: searchTerm
+        },{
+          email: searchTerm
+        },{
+          phone: searchTerm
+        },{
+          status: searchTerm
+    }];
+
+    
+    let branches = yield BranchDal.getCollectionByPagination(query, opts);
+
+    this.body = branches;
+
+  } catch(ex) {
+    return this.throw(new CustomError({
+      type: 'SEARCH_BRANCHES_ERROR',
+      message: ex.message
+    }));
+  }
 };
