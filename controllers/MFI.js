@@ -13,6 +13,7 @@ const _          = require('lodash');
 const co         = require('co');
 const del        = require('del');
 const validator  = require('validator');
+const fs         = require('fs-extra');
 
 const config             = require('../config');
 const CustomError        = require('../lib/custom-error');
@@ -83,9 +84,14 @@ exports.create = function* createMfi(next) {
       let extname   = path.extname(body.logo.name);
       let assetName = `${filename}_${id}${extname}`;
 
-      let url       = yield googleBuckets(body.logo.path, assetName);
+      yield fs.move(body.logo.path, `./assets/${assetName}`)
+      yield fs.remove(body.logo.path);
 
-      body.logo = url;
+      body.logo = config.ENV === 'development' ? `${config.ASSETS.DEV}${assetName}` : `${config.ASSETS.PROD}${assetName}`
+
+      //let url       = yield googleBuckets(body.logo.path, assetName);
+
+      //body.logo = url;
     }
 
     // Create Mfi Type

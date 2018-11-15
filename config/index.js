@@ -51,7 +51,9 @@ let config = {
   ASSETS: {
     FILE_SIZE: 2 * 1024 * 1024, // 1MB,
     URL: API_URL + '/media/',
-    DIR: path.resolve(process.cwd(), './assets') + '/'
+    DIR: path.resolve(process.cwd(), './assets') + '/',
+    PROD: 'http://api.bidir.gebeya.co/MFI/assets/',
+    DEV: 'http://api.dev.bidir.gebeya.co/MFI/assets/'
   },
   GOOGLE_BUCKETS: {
     ACCESS_ID: 'bidir-bucket-access@los-bidir.iam.gserviceaccount.com',
