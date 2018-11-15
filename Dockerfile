@@ -1,4 +1,4 @@
-# Dockerfile for bidir dev environment mfi service
+# Dockerfile for bidir staging environment mfi service
 FROM node:8.8.1
 
 MAINTAINER Teferi Assefa <teferi.assefa@gmail.com>
