@@ -10,10 +10,14 @@ const _       = require('lodash');
 const co      = require('co');
 
 const Branch    = require('../models/branch');
+const Wereda    = require('../models/wereda');
 const mongoUpdate   = require('../lib/mongo-update');
 
 var returnFields = Branch.attributes;
-var population = [];
+var population = [{
+  path: 'weredas',
+  select: Wereda.attributes
+}];
 
 /**
  * create a new branch.
