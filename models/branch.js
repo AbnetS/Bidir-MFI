@@ -21,7 +21,7 @@ var BranchSchema = new Schema({
     geolocation:    {
       longitude: { type: Number, default: 0.0 },
       latitude:  { type: Number, default: 0.0 }
-    }
+    },
     date_created:   { type: Date },
     last_modified:  { type: Date }
 });
