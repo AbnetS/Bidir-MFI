@@ -87,7 +87,7 @@ exports.create = function* createMfi(next) {
       yield fs.move(body.logo.path, `./assets/${assetName}`)
       yield fs.remove(body.logo.path);
 
-      body.logo = config.ENV === 'development' ? `${config.ASSETS.DEV}${assetName}` : `${config.ASSETS.PROD}${assetName}`
+      body.logo =  `${config.ASSETS.DEV}${assetName}`
 
       //let url       = yield googleBuckets(body.logo.path, assetName);
 
