@@ -9,7 +9,7 @@ WORKDIR /usr/src/app
 
 RUN npm install
 
-EXPOSE 8000
+EXPOSE 8070
 
 ENTRYPOINT ["node", "app.js"]
 

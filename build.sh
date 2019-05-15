@@ -3,8 +3,8 @@ DOCKER_PATH=$(which docker)
 DEPLOYMENT_ENV=`hostname | awk -F - '{print $2}'`
 SERVICE_NAME=$DEPLOYMENT_ENV-mfi-api
 IMAGE_TAG=bidir/$SERVICE_NAME
-EXPOSE_PORT=8000
-CONT_PORT=8000
+EXPOSE_PORT=8070
+CONT_PORT=8070
 HOST_IP=`ifconfig ens4 | awk '/inet addr/{print substr($2,6)}'`
 MONGODB_URL=mongodb://$HOST_IP:27017/bidir
 # Stop running container

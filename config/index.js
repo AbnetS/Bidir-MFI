@@ -7,8 +7,8 @@ const path = require('path');
 
 const env = process.env;
 
-const PORT        = env.PORT || 8000;
-const API_URL     = env.API_URL || 'http://127.0.0.1:8000';
+const PORT        = env.PORT || 8070;
+const API_URL     = env.API_URL || 'http://127.0.0.1:8070';
 const NODE_ENV    = env.NODE_ENV || 'development';
 const HOST        = env.HOST_IP || 'localhost';
 
