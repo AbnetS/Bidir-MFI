@@ -284,7 +284,12 @@ exports.update = function* updateMfi(next) {
       let extname   = path.extname(body.logo.name);
       let assetName = `${filename}_${id}${extname}`;
 
-      let url       = yield googleBuckets(body.logo.path, assetName);
+      yield fs.move(body.logo.path, `./assets/${assetName}`)
+      yield fs.remove(body.logo.path);
+
+      body.logo =  `${config.ASSETS.DEV}${assetName}`
+
+      //let url       = yield googleBuckets(body.logo.path, assetName);
 
       body.logo = url;
     }

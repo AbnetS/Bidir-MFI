@@ -70,7 +70,7 @@ router.post('/create', acl(['*']), mfiController.create);
 
 
 /**
- * @api {get} /MFI/all Get mfis collection
+ * @api {get} /MFI/all Get MFIs collection
  * @apiVersion 1.0.0
  * @apiName FetchAll
  * @apiGroup MFI
@@ -105,7 +105,7 @@ router.post('/create', acl(['*']), mfiController.create);
 router.get('/all', acl(['*']), mfiController.fetchAll);
 
 /**
- * @api {get} /MFI/logo Get mfis logo
+ * @api {get} /MFI/logo Get MFI's logo
  * @apiVersion 1.0.0
  * @apiName GetLogo
  * @apiGroup MFI
@@ -123,12 +123,12 @@ router.get('/logo', mfiController.getLogo);
 
 
 /**
- * @api {get} /MFI/:id Get MFI MFI
+ * @api {get} /MFI/:id Get MFI record
  * @apiVersion 1.0.0
  * @apiName Get
  * @apiGroup MFI
  *
- * @apiDescription Get a user mfi with the given id
+ * @apiDescription Get MFI record with the given id
  *
  * @apiSuccess {String} _id mfi id
  * @apiSuccess {String} name MFI Name
@@ -174,7 +174,7 @@ router.get('/:id', acl(['*']), mfiController.fetchOne);
  *
  * @apiParamExample Request example:
  * {
- *    notes: "FB"
+ *     phone: "+251911454656"
  * }
  *
  * @apiSuccess {String} _id mfi id
@@ -195,7 +195,7 @@ router.get('/:id', acl(['*']), mfiController.fetchOne);
  *    name: "MFI",
  *    email: "contact@mfi.com",
  *    contact_person: "Mary Jane",
- *    phone: "0967889977",
+ *    phone: "+251911454656",
  *    establishment_year: "1992",
  *    location: "Radisson Blu, That Avenue, 3rd Floor, Addis Ababa, Ethiopia",
  *    website_link: "https://MFI.com/",
@@ -208,12 +208,12 @@ router.get('/:id', acl(['*']), mfiController.fetchOne);
 router.put('/:id', acl(['*']), mfiController.update);
 
 /**
- * @api {delete} /MFI/:id Delete MFI 
+ * @api {delete} /MFI/:id Delete MFI record
  * @apiVersion 1.0.0
  * @apiName Delete
  * @apiGroup MFI 
  *
- * @apiDescription Delete an MFI mfi with the given id
+ * @apiDescription Delete the MFI record with the given id
  *
  * @apiSuccess {String} _id mfi id
  * @apiSuccess {String} name MFI Name
