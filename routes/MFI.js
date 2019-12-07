@@ -12,21 +12,21 @@ const acl               = authController.accessControl;
 var router  = Router();
 
 /**
- * @api {post} /MFI/create Create new MFI
+ * @api {post} /MFI/create Create a new MFI
  * @apiVersion 1.0.0
  * @apiName CreateMFI
  * @apiGroup MFI
  *
  * @apiDescription Create new MFI. Data to be submitted as multipart/form-data
  *
- * @apiParam {String} name MFI Name
- * @apiParam {String} location MFI location
- * @apiParam {String} logo MFI logo
- * @apiParam {String} establishment_year Establishment Year
- * @apiParam {String} website_link Website Link
- * @apiParam {String} email MFI Contact Email Address
- * @apiParam {String} phone MFI Contact Phone Number
- * @apiParam {String} contact_person MFI Contact Person
+ * @apiParam {String} name MFI's Name
+ * @apiParam {String} location MFI's location
+ * @apiParam {String} logo MFI's logo
+ * @apiParam {String} [establishment_year] Establishment Year
+ * @apiParam {String} [website_link] Website Link
+ * @apiParam {String} [email] MFI's Contact Email Address
+ * @apiParam {String} [phone] MFI's Contact Phone Number
+ * @apiParam {String} [contact_person] MFI's Contact Person
  *
  * @apiParamExample Request Example:
  *  {
@@ -125,12 +125,12 @@ router.get('/logo', mfiController.getLogo);
 /**
  * @api {get} /MFI/:id Get MFI record
  * @apiVersion 1.0.0
- * @apiName Get
+ * @apiName GetMFI
  * @apiGroup MFI
  *
  * @apiDescription Get MFI record with the given id
  *
- * @apiSuccess {String} _id mfi id
+ * @apiSuccess {String} _id MFI id
  * @apiSuccess {String} name MFI Name
  * @apiSuccess {String} location MFI location
  * @apiSuccess {String} logo MFI logo
@@ -163,12 +163,12 @@ router.get('/:id', acl(['*']), mfiController.fetchOne);
 
 
 /**
- * @api {put} /MFI/:id Update MFI MFI
+ * @api {put} /MFI/:id Update MFI record
  * @apiVersion 1.0.0
- * @apiName Update
+ * @apiName UpdateMFI
  * @apiGroup MFI 
  *
- * @apiDescription Update a MFI mfi with the given id
+ * @apiDescription Update MFI record with the given id
  *
  * @apiParam {Object} Data Update data
  *
@@ -177,7 +177,7 @@ router.get('/:id', acl(['*']), mfiController.fetchOne);
  *     phone: "+251911454656"
  * }
  *
- * @apiSuccess {String} _id mfi id
+ * @apiSuccess {String} _id MFI id
  * @apiSuccess {String} name MFI Name
  * @apiSuccess {String} location MFI location
  * @apiSuccess {String} logo MFI logo
@@ -210,7 +210,7 @@ router.put('/:id', acl(['*']), mfiController.update);
 /**
  * @api {delete} /MFI/:id Delete MFI record
  * @apiVersion 1.0.0
- * @apiName Delete
+ * @apiName DeleteMFI
  * @apiGroup MFI 
  *
  * @apiDescription Delete the MFI record with the given id
@@ -244,6 +244,7 @@ router.put('/:id', acl(['*']), mfiController.update);
  *  }
  */
 router.delete('/:id', acl(['*']), mfiController.remove);
+
 
 
 // Expose MFI Router
