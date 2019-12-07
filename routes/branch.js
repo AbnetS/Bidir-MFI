@@ -17,14 +17,14 @@ var router  = Router();
  * @apiName Createbranch
  * @apiGroup Branch
  *
- * @apiDescription Create new branch
+ * @apiDescription Create a new branch
  *
  * @apiParam {String} name Branch Name
  * @apiParam {String} location Branch Location
- * @apiParam {String} opening_date Opening Date
- * @apiParam {String} branch_type Branch Type
- * @apiParam {String} email Branch Contact Email Address
- * @apiParam {String} phone Branch Contact Phone Number
+ * @apiParam {String} [opening_date] Opening Date
+ * @apiParam {String} [branch_type] Branch Type
+ * @apiParam {String} [email] Branch Contact Email Address
+ * @apiParam {String} [phone] Branch Contact Phone Number
  * @apiParam {String} [status] Branch Status, defaults to active
  *
  * @apiParamExample Request Example:

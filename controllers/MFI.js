@@ -291,7 +291,7 @@ exports.update = function* updateMfi(next) {
 
       //let url       = yield googleBuckets(body.logo.path, assetName);
 
-      body.logo = url;
+      //body.logo = url;
     }
 
     mfi = yield MFIDal.update(query, body);
