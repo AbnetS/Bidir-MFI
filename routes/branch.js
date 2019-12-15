@@ -226,7 +226,7 @@ router.get('/:id', acl(['*']), branchController.fetchOne);
  *
  * @apiDescription Update a branch with the given id
  *
- * @apiParam {Object} Data Update data
+ * @apiParam {Object} Data Update data. Data to be submitted as multipart/form-data
  *
  * @apiParamExample Request example:
  * {
